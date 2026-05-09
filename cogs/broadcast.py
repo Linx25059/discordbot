@@ -8,17 +8,15 @@ import datetime
 class Broadcast(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.conn = sqlite3.connect('bot_database.db', timeout=10.0)
-        self.c = self.conn.cursor()
-
-        # 建立資料表：紀錄哪個伺服器在哪個頻道發送廣播，以及紀錄已經推播過的免費遊戲 (避免重複洗頻)
-        self.c.execute('''CREATE TABLE IF NOT EXISTS server_settings (guild_id INTEGER PRIMARY KEY, broadcast_channel_id INTEGER)''')
-        self.c.execute('''CREATE TABLE IF NOT EXISTS free_games (game_id TEXT PRIMARY KEY)''')
-        self.conn.commit()
 
         # 啟動自動排程任務
         self.daily_news.start()
         self.check_free_games.start()
+
+    async def cog_load(self):
+        await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS server_settings (guild_id INTEGER PRIMARY KEY, broadcast_channel_id INTEGER)''')
+        await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS free_games (game_id TEXT PRIMARY KEY)''')
+        await self.bot.db.db.commit()
 
     def cog_unload(self):
         # 模組卸載時，停止任務
@@ -101,8 +99,9 @@ class Broadcast(commands.Cog):
                             game_id = str(game.get('id'))
                             
                             # 檢查資料庫，看這個遊戲是不是已經播報過了
-                            self.c.execute('SELECT game_id FROM free_games WHERE game_id = ?', (game_id,))
-                            if self.c.fetchone() is None:
+                            async with self.bot.db.db.execute('SELECT game_id FROM free_games WHERE game_id = ?', (game_id,)) as cursor:
+                                is_sent = await cursor.fetchone()
+                            if not is_sent:
                                 # 沒播報過，準備廣播！
                                 embed = discord.Embed(title=f"🎮 【限時免費】{game.get('title')}", description=f"平台: **{game.get('platforms')}**\n趕快領取，以免向隅！", url=game.get('open_giveaway_url'), color=discord.Color.green())
                                 embed.set_image(url=game.get('thumbnail'))
