@@ -15,42 +15,40 @@ class ImageGen(commands.Cog):
     async def jail(self, ctx, member: discord.Member = None):
         member = member or ctx.author
         
-        # 取得使用者的大頭貼 URL，並強制轉為 PNG 格式
-        avatar_url = member.display_avatar.with_format("png").url
+        # 🛡️ 防禦與修復：discord.py 2.0+ 已移除 with_format()，必須使用 replace(format="png")
+        # 加上 size=512 確保抓取到足夠清晰的圖片以供後續 PIL 處理
+        avatar_url = member.display_avatar.replace(format="png", size=512).url
         
         async with ctx.typing():
             try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(avatar_url) as resp:
-                        if resp.status != 200:
-                            return await ctx.send("❌ 無法讀取大頭貼圖片！")
-                        data = await resp.read()
+                async with self.bot.session.get(avatar_url) as resp:
+                    if resp.status != 200:
+                        return await ctx.send("❌ 抓不到大頭貼，可能有點問題！")
+                    data = await resp.read()
                 
-                # 使用 Pillow 開啟大頭貼，並調整為 400x400 大小
-                base_img = Image.open(io.BytesIO(data)).convert("RGBA")
-                base_img = base_img.resize((400, 400))
-                
-                # 建立一張完全透明的畫布用來畫欄杆
-                overlay = Image.new("RGBA", base_img.size, (0, 0, 0, 0))
-                draw = ImageDraw.Draw(overlay)
-                
-                # 畫出監獄欄杆 (粗黑灰色的直線)
-                for i in range(0, 400, 50):
-                    draw.line([(i, 0), (i, 400)], fill=(60, 60, 60, 255), width=15)
-                
-                # 畫出外框
-                draw.rectangle([(0, 0), (400, 400)], outline=(60, 60, 60, 255), width=25)
-                
-                # 將欄杆覆蓋到大頭貼上
-                final_img = Image.alpha_composite(base_img, overlay)
-                
-                # 將合成好的圖片存入記憶體中，並透過 Discord 發送
-                with io.BytesIO() as image_binary:
+                # ⚡ 使用 run_in_executor 避免 PIL 阻塞事件迴圈
+                def process_image(img_data):
+                    base_img = Image.open(io.BytesIO(img_data)).convert("RGBA")
+                    base_img = base_img.resize((400, 400))
+                    overlay = Image.new("RGBA", base_img.size, (0, 0, 0, 0))
+                    draw = ImageDraw.Draw(overlay)
+                    for i in range(0, 400, 50):
+                        draw.line([(i, 0), (i, 400)], fill=(60, 60, 60, 255), width=15)
+                    draw.rectangle([(0, 0), (400, 400)], outline=(60, 60, 60, 255), width=25)
+                    final_img = Image.alpha_composite(base_img, overlay)
+                    
+                    image_binary = io.BytesIO()
                     final_img.save(image_binary, "PNG")
                     image_binary.seek(0)
-                    await ctx.send(f"🚓 嗶嗶！{member.mention} 被關進大牢了！", file=discord.File(fp=image_binary, filename="jail.png"))
+                    return image_binary
+
+                image_binary = await self.bot.loop.run_in_executor(None, process_image, data)
+                
+                embed = discord.Embed(title="🚓 逮捕歸案", description=f"{member.mention} 被關進大牢了！", color=discord.Color.dark_gray())
+                embed.set_image(url="attachment://jail.png")
+                await ctx.send(embed=embed, file=discord.File(fp=image_binary, filename="jail.png"))
             except Exception as e:
-                await ctx.send(f"⚠️ 產生圖片時發生錯誤：{e}")
+                await ctx.send(embed=discord.Embed(description=f"⚠️ 產生圖片時發生錯誤：{e}", color=discord.Color.red()), ephemeral=True)
 
     @commands.cooldown(1, 5, commands.BucketType.user)
     @commands.hybrid_command(name="meme", aliases=["迷因"], help="產生經典迷因圖 (文字間請用 | 隔開)")
@@ -74,7 +72,7 @@ class ImageGen(commands.Cog):
 
         meme_url = f"https://api.memegen.link/images/{template}/{safe_top}/{safe_bottom}.png"
         
-        embed = discord.Embed(title="🖼️ 你的迷因圖來了！", color=discord.Color.random())
+        embed = discord.Embed(title="🖼️ 你的迷因圖做好了！", color=discord.Color.random())
         embed.set_image(url=meme_url)
         embed.set_footer(text=f"由 {ctx.author.display_name} 產生 • 模板: {template}")
         

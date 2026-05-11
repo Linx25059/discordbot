@@ -8,9 +8,9 @@ class LinkFixer(commands.Cog):
         # 設定要替換的網域對應表 (使用目前主流且穩定的預覽 API)
         self.fix_map = {
             "twitter.com": "vxtwitter.com",
-            "x.com": "fixupx.com",
-            "instagram.com": "instagramez.com",
-            "tiktok.com": "vxtiktok.com",
+            "x.com": "fixvx.com",
+            "instagram.com": "kkinstagram.com",
+            "tiktok.com": "d.tiktokez.com",
             "vm.tiktok.com": "vm.vxtiktok.com",
             "threads.com": "fixthreads.seria.moe",
             "threads.net": "vxthreads.net",
@@ -96,7 +96,7 @@ class LinkFixer(commands.Cog):
             except discord.Forbidden:
                 pass
             
-            reply_content = "🎥 **為您提供影片預覽連結：**\n" + "\n".join(fixed_urls)
+            reply_content = "🔗 **為您提供可預覽的連結：**\n" + "\n".join(fixed_urls)
             await message.reply(reply_content, mention_author=False)
 
 async def setup(bot):

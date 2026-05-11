@@ -12,7 +12,7 @@ class Admin(commands.Cog):
         # amount + 1 是為了連同使用者剛輸入的 !clear 指令本身一起刪掉
         deleted = await ctx.channel.purge(limit=amount + 1)
         # 傳送提示，並設定 delete_after=3.0，讓這個提示 3 秒後自動消失，保持版面乾淨
-        await ctx.send(f"🧹 狠狠的把 {len(deleted)-1} 則訊息蛋雕", delete_after=2.0)
+        await ctx.send(f"🧹 已成功清除 {len(deleted)-1} 則訊息。", delete_after=3.0)
 
     # 🛡️ 功能 2：歡迎新成員系統 (自動觸發，不用打指令)
     @commands.Cog.listener()

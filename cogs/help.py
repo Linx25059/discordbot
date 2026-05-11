@@ -1,170 +1,57 @@
 import discord
 from discord.ext import commands
-import sqlite3
-
-class HelpCommandView(discord.ui.View):
-    def __init__(self, bot, author, category_name, commands_list, home_view, home_embed):
-        super().__init__(timeout=300)
-        self.bot = bot
-        self.author = author
-        self.home_view = home_view
-        self.home_embed = home_embed
-
-        # 第一排加入返回按鈕
-        back_btn = discord.ui.Button(label="⬅️ 返回首頁", style=discord.ButtonStyle.danger)
-        back_btn.callback = self.go_back
-        self.add_item(back_btn)
-
-        # 動態產生指令按鈕 (Discord 限制一個 View 最多 25 個按鈕，保留 1 個給返回)
-        for cmd in commands_list[:24]:
-            btn = discord.ui.Button(label=f"/{cmd.name}", style=discord.ButtonStyle.primary)
-            btn.callback = self.make_cmd_callback(cmd)
-            self.add_item(btn)
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user != self.author:
-            await interaction.response.send_message("❌ 這是別人的幫助選單，請自己輸入 `!help` 呼叫喔！", ephemeral=True)
-            return False
-        return True
-
-    async def go_back(self, interaction: discord.Interaction):
-        await interaction.response.edit_message(embed=self.home_embed, view=self.home_view)
-
-    def make_cmd_callback(self, cmd):
-        async def callback(interaction: discord.Interaction):
-            await interaction.response.defer()
-
-            # 建立一個虛擬的訊息物件來欺騙 Context
-            class MockMessage:
-                def __init__(self, interaction, command_name):
-                    self.id = interaction.message.id
-                    self.author = interaction.user
-                    self.channel = interaction.channel
-                    self.guild = interaction.guild
-                    self.content = f"!{command_name}"
-                    self.attachments = []
-                    self.embeds = []
-                    self.components = []
-                    self.mentions = []
-                    self.role_mentions = []
-                    self.channel_mentions = []
-                    self.flags = discord.MessageFlags()
-                    self.type = discord.MessageType.default
-                    self._state = getattr(interaction, '_state', None)
-                    self.created_at = interaction.created_at
-                    self.edited_at = None
-
-                async def delete(self, *args, **kwargs):
-                    pass # 避免被特定指令 (如 !poll) 誤刪除面板
-
-            msg = MockMessage(interaction, cmd.name)
-            ctx = await self.bot.get_context(msg)
-            
-            # 呼叫全域 invoke，觸發指令的所有生命週期與錯誤處理
-            if ctx.command:
-                await self.bot.invoke(ctx)
-
-        return callback
-
-class HelpView(discord.ui.View):
-    def __init__(self, bot, cog_mapping, author, home_embed):
-        super().__init__(timeout=300) # 5 分鐘後按鈕失效
-        self.bot = bot
-        self.cog_mapping = cog_mapping
-        self.author = author
-        self.home_embed = home_embed
-
-        # 第一個按鈕：首頁
-        home_btn = discord.ui.Button(label="🏠 首頁", style=discord.ButtonStyle.success)
-        home_btn.callback = self.show_home
-        self.add_item(home_btn)
-
-        # 動態生成各模組的分類按鈕
-        for cog_name, cog in self.bot.cogs.items():
-            commands_list = [c for c in cog.get_commands() if not c.hidden]
-            if not commands_list:
-                continue
-            
-            display_name = self.cog_mapping.get(cog_name, f"📌 {cog_name}")
-            btn = discord.ui.Button(label=display_name, style=discord.ButtonStyle.primary)
-            btn.callback = self.make_callback(display_name, commands_list)
-            self.add_item(btn)
-
-    # 防止其他人亂點你的按鈕
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user != self.author:
-            await interaction.response.send_message("❌ 這是別人的幫助選單，請自己輸入 `!help` 呼叫喔！", ephemeral=True)
-            return False
-        return True
-
-    # 按下首頁的動作
-    async def show_home(self, interaction: discord.Interaction):
-        await interaction.response.edit_message(embed=self.home_embed, view=self)
-
-    # 按下各分類按鈕的動作
-    def make_callback(self, display_name, commands_list):
-        async def callback(interaction: discord.Interaction):
-            embed = discord.Embed(
-                title=f"{display_name} 指令",
-                color=discord.Color.blue()
-            )
-            
-            cmd_info = []
-            for cmd in commands_list:
-                desc = cmd.help if cmd.help else "未提供說明"
-                cmd_info.append(f"**`!{cmd.name}`** - {desc}")
-            
-            embed.description = "👇 **點擊下方的按鈕，可以直接快速使用對應的指令喔！**\n\n" + "\n".join(cmd_info)
-            embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-            embed.set_footer(text=f"你正在查看 {display_name} 分類", icon_url=self.author.display_avatar.url)
-            
-            # 切換為帶有具體指令按鈕的 View
-            cmd_view = HelpCommandView(self.bot, self.author, display_name, commands_list, self, self.home_embed)
-            await interaction.response.edit_message(embed=embed, view=cmd_view)
-        return callback
 
 class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.conn = sqlite3.connect('bot_database.db', timeout=10.0)
-        self.c = self.conn.cursor()
-        self.c.execute('''CREATE TABLE IF NOT EXISTS update_settings (guild_id INTEGER PRIMARY KEY, channel_id INTEGER, last_version TEXT)''')
-        self.conn.commit()
+
+    async def cog_load(self):
+        await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS update_settings (guild_id INTEGER PRIMARY KEY, channel_id INTEGER, last_version TEXT)''')
+        await self.bot.db.db.commit()
 
         # --- 在這裡設定最新版本的更新內容 ---
-        self.current_version = "v2.2"
-        self.changelog_title = f"✨ 機器人更新日誌 ({self.current_version})"
+        self.current_version = "0.5.3"
+        self.changelog_title = f"✨ 機器人更新日誌 (v{self.current_version})"
         self.changelog_text = (
-            "**🆕 最新功能**\n"
-            "• **全面導入下拉式選單 (Dropdown Menus)**：`/eat`、`/buy`、`/trade`、`/use`、`/coinflip` 等指令現在全面支援精美的下拉選單與圖示！再也不怕打錯字，點擊選單就能輕鬆操作！\n"
-            "• **指令參數提示優化**：為各個指令的參數加上了詳細的中文引導說明。\n\n"
-            "**🔧 修正與優化**\n"
-            "• 修正了部分斜線指令與按鈕的衝突，並大幅提升了操作體驗與機器人穩定性。"
+            "**🛠️ v0.5.3 更新內容**\n"
+            "• 🃏 新增多人連線「21點」牌桌，完美還原真實賭場體驗！\n"
+            "• 🍔 史詩級擴充吃喝推薦清單，加入早午晚餐時段分類與百款人氣手搖飲！\n\n"
+            "**🛠️ v0.5.2 更新內容**\n"
+            "• 🧹 清理幫助選單，移除了已經不存在的舊功能顯示，讓指令選單更準確乾淨。\n\n"
         )
 
         # 啟動時檢查是否需要推播更新
         self.bot.loop.create_task(self.auto_push_updates())
 
-        self.cog_mapping = {
-            "Economy": "💸 經濟系統",
-            "Gamble": "🎲 賭博遊戲",
-            "Fun": "🎉 娛樂功能",
-            "AIChat": "🤖 AI 互動",
-            "Admin": "🛡️ 管理員指令",
-            "Broadcast": "📡 自動廣播",
-            "Weather": "🌤️ 天氣資訊",
-            "AutoVoice": "🎙️ 動態語音",
-            "Logger": "📝 日誌系統",
-            "Help": "ℹ️ 幫助系統",
-            "ImageGen": "🖼️ 圖片生成",
-            "LinkFixer": "🔗 連結修復",
-            "Finance": "📈 金融市場"
+        # 重新整理成大分類結構
+        self.categorized_cogs = {
+            "🎉 娛樂與遊戲": {
+                "Fun": "🎉 趣味活動",
+                "ImageGen": "🖼️ 圖片產生",
+                "GameRouletteCog": "🎰 遊戲抽籤",
+                "Music": "🎵 音樂播放",
+                "JerkCounter": "💦 趣味計數"
+            },
+            "💸 經濟系統": {
+                "Economy": "💸 帳戶與經濟",
+                "Gamble": "🎲 娛樂賭場",
+                "Finance": "📈 虛擬股市"
+            },
+            "🏆 等級系統": {
+                "Leveling": "🏆 活躍排行榜"
+            },
+            "🛠️ 實用工具": {
+                "AIChat": "🤖 AI 聊天助理",
+                "Weather": "🌤️ 天氣查詢",
+                "AutoReply": "💬 自動回覆",
+                "Info": "ℹ️ 關於我"
+            }
         }
 
     async def auto_push_updates(self):
         await self.bot.wait_until_ready()
-        self.c.execute('SELECT guild_id, channel_id, last_version FROM update_settings')
-        settings = self.c.fetchall()
+        async with self.bot.db.db.execute('SELECT guild_id, channel_id, last_version FROM update_settings') as cursor:
+            settings = await cursor.fetchall()
 
         for guild_id, channel_id, last_version in settings:
             if last_version != self.current_version:
@@ -174,9 +61,9 @@ class Help(commands.Cog):
                     embed.set_thumbnail(url=self.bot.user.display_avatar.url)
                     embed.set_footer(text="未來有新功能都會自動推播到這裡喔！")
                     try:
-                        await channel.send("🚀 **機器人有新的更新囉！**", embed=embed)
-                        self.c.execute('UPDATE update_settings SET last_version = ? WHERE guild_id = ?', (self.current_version, guild_id))
-                        self.conn.commit()
+                        await channel.send("🚀 **機器人有新的更新內容囉！**", embed=embed)
+                        await self.bot.db.db.execute('UPDATE update_settings SET last_version = ? WHERE guild_id = ?', (self.current_version, guild_id))
+                        await self.bot.db.db.commit()
                     except Exception as e:
                         print(f"推播更新失敗 (Guild: {guild_id}): {e}")
 
@@ -184,16 +71,82 @@ class Help(commands.Cog):
     async def custom_help(self, ctx):
         embed = discord.Embed(
             title="🤖 機器人指令清單",
-            description="請點擊下方的按鈕，選擇你想查看的指令分類！\n現在全面支援輸入 `/` 來快速呼叫指令囉！\n例如：`/work`、`/shop`、`/天氣`",
+            description="以下是目前所有可用的指令：\n*(提示：在對話框輸入 `/` 可以查看各指令的詳細說明喔！)*",
             color=discord.Color.blurple()
         )
-
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-        embed.set_footer(text="提示：使用 / 斜線指令會有更好的體驗喔！", icon_url=ctx.author.display_avatar.url)
-        
-        # 產生帶有按鈕的 View
-        view = HelpView(self.bot, self.cog_mapping, ctx.author, embed)
-        await ctx.send(embed=embed, view=view)
+
+        # 依據分類動態加入指令
+        categorized_cog_names = []
+        for category, cogs in self.categorized_cogs.items():
+            category_cmds = []
+            for cog_name in cogs.keys():
+                categorized_cog_names.append(cog_name)
+                cog = self.bot.get_cog(cog_name)
+                if not cog:
+                    continue
+                for cmd in cog.get_commands():
+                    if cmd.hidden:
+                        continue
+                    
+                    # 過濾掉管理員專用的指令 (即使呼叫者是管理員，也不在普通 help 顯示)
+                    is_admin_cmd = False
+                    for check in cmd.checks:
+                        qualname = getattr(check, '__qualname__', '')
+                        if 'has_permissions' in qualname or 'has_guild_permissions' in qualname or 'is_owner' in qualname:
+                            is_admin_cmd = True
+                            break
+                    if is_admin_cmd:
+                        continue
+
+                    allowed = True
+                    try:
+                        await cmd.can_run(ctx)
+                    except commands.CommandOnCooldown:
+                        allowed = True # 例：指令在冷卻中依然顯示
+                    except Exception:
+                        allowed = False # 缺乏權限或其他錯誤則隱藏
+                        
+                    if allowed:
+                        usage = f" {cmd.signature}" if cmd.signature else ""
+                        category_cmds.append(f"**`/{cmd.name}{usage}`** - {cmd.short_doc or '無說明'}")
+            
+            if category_cmds:
+                embed.add_field(name=category, value="\n".join(category_cmds), inline=False)
+
+        # 處理未分類的其他指令 (例如 Help 模組內的指令)
+        other_cmds = []
+        for cmd in self.bot.commands:
+            if cmd.hidden or cmd.cog_name in categorized_cog_names:
+                continue
+                
+            # 過濾未分類的管理員指令
+            is_admin_cmd = False
+            for check in cmd.checks:
+                qualname = getattr(check, '__qualname__', '')
+                if 'has_permissions' in qualname or 'has_guild_permissions' in qualname or 'is_owner' in qualname:
+                    is_admin_cmd = True
+                    break
+            if is_admin_cmd:
+                continue
+
+            allowed = True
+            try:
+                await cmd.can_run(ctx)
+            except commands.CommandOnCooldown:
+                allowed = True
+            except Exception:
+                allowed = False
+                
+            if allowed:
+                usage = f" {cmd.signature}" if cmd.signature else ""
+                other_cmds.append(f"**`/{cmd.name}{usage}`** - {cmd.short_doc or '無說明'}")
+                
+        if other_cmds:
+            embed.add_field(name="📌 其他指令", value="\n".join(other_cmds), inline=False)
+
+        embed.set_footer(text=f"查詢者: {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
+        await ctx.send(embed=embed)
 
     @commands.hybrid_command(name="changelog", aliases=["update", "更新", "更新日誌"], help="查看機器人的最新更新內容")
     async def changelog(self, ctx):
@@ -203,7 +156,7 @@ class Help(commands.Cog):
             color=discord.Color.gold()
         )
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-        embed.set_footer(text="未來有新功能都會在這裡發布喔！", icon_url=ctx.author.display_avatar.url)
+        embed.set_footer(text="若想知道未來的更新內容，也可以隨時使用此指令查看！", icon_url=ctx.author.display_avatar.url)
         await ctx.send(embed=embed)
 
     @commands.hybrid_command(name="setupdate", aliases=["設定更新推播"], help="設定自動接收機器人更新公告的頻道")
@@ -217,11 +170,55 @@ class Help(commands.Cog):
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         embed.set_footer(text="未來有新功能都會自動推播到這裡喔！", icon_url=ctx.author.display_avatar.url)
         
-        await ctx.send(f"✅ 成功！已將 {ctx.channel.mention} 設為更新推播頻道。這是最新的更新內容：", embed=embed)
+        await ctx.send(f"✅ 設定成功！未來最新的更新資訊都會發布在 {ctx.channel.mention}。", embed=embed)
         
-        self.c.execute('INSERT OR REPLACE INTO update_settings (guild_id, channel_id, last_version) VALUES (?, ?, ?)', 
+        await self.bot.db.db.execute('INSERT OR REPLACE INTO update_settings (guild_id, channel_id, last_version) VALUES (?, ?, ?)', 
                        (ctx.guild.id, ctx.channel.id, self.current_version))
-        self.conn.commit()
+        await self.bot.db.db.commit()
+
+    @commands.hybrid_command(name="adminhelp", aliases=["allcmds", "ah"], help="【管理員專用】查看所有指令 (包含隱藏及管理權限指令)")
+    @commands.has_permissions(administrator=True)
+    async def admin_help(self, ctx):
+        embed = discord.Embed(
+            title="🛠️ 管理員指令清單",
+            description="以下列出目前系統載入的**所有指令**（包含隱藏與管理員專用指令）：",
+            color=discord.Color.red()
+        )
+
+        # 整理所有指令並依據 Cog 分類
+        cogs_dict = {}
+        for cmd in self.bot.commands:
+            cog_name = cmd.cog_name or "未分類指令"
+            if cog_name not in cogs_dict:
+                cogs_dict[cog_name] = []
+            cogs_dict[cog_name].append(cmd)
+
+        for cog_name, cmds in sorted(cogs_dict.items()):
+            cmd_list = []
+            for cmd in sorted(cmds, key=lambda c: c.name):
+                usage = f" {cmd.signature}" if cmd.signature else ""
+                hidden_tag = " 👻*(隱藏)*" if cmd.hidden else ""
+                
+                # 標記管理權限指令
+                is_admin_cmd = False
+                for check in cmd.checks:
+                    qualname = getattr(check, '__qualname__', '')
+                    if 'has_permissions' in qualname or 'has_guild_permissions' in qualname or 'is_owner' in qualname:
+                        is_admin_cmd = True
+                        break
+                admin_tag = " 🛡️*(管理)*" if is_admin_cmd else ""
+                
+                cmd_list.append(f"**`/{cmd.name}{usage}`**{hidden_tag}{admin_tag} - {cmd.short_doc or '無說明'}")
+            
+            value = "\n".join(cmd_list)
+            # 防止字數超過 Discord Embed 欄位限制的 1024 字元
+            if len(value) > 1024:
+                value = value[:1020] + "..."
+            
+            embed.add_field(name=f"📌 {cog_name}", value=value, inline=False)
+
+        embed.set_footer(text=f"查詢者: {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
+        await ctx.send(embed=embed, ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(Help(bot))

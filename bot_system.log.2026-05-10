@@ -1,0 +1,187 @@
+2026-05-10 17:23:02,270 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-10 17:23:03,015 [INFO] root (main.py:49 - setup_bot): 已載入模組: economy.py
+2026-05-10 17:23:03,017 [INFO] root (main.py:58 - setup_bot): 已載入模組: admin.py
+2026-05-10 17:23:04,386 [INFO] root (main.py:58 - setup_bot): 已載入模組: ai_chat.py
+2026-05-10 17:23:04,387 [INFO] root (main.py:58 - setup_bot): 已載入模組: auto_voice.py
+2026-05-10 17:23:04,402 [INFO] root (main.py:58 - setup_bot): 已載入模組: broadcast.py
+2026-05-10 17:23:04,403 [INFO] root (main.py:58 - setup_bot): 已載入模組: bug_report.py
+2026-05-10 17:23:04,411 [ERROR] root (main.py:60 - setup_bot): 載入 economy.py 失敗: Extension 'cogs.economy' raised an error: ClientException: Cog named 'Economy' already loaded
+2026-05-10 17:23:04,421 [INFO] root (main.py:58 - setup_bot): 已載入模組: error_handler.py
+2026-05-10 17:23:04,423 [INFO] root (main.py:58 - setup_bot): 已載入模組: finance.py
+2026-05-10 17:23:04,426 [INFO] root (main.py:58 - setup_bot): 已載入模組: fun.py
+2026-05-10 17:23:04,427 [INFO] root (main.py:58 - setup_bot): 已載入模組: gamble.py
+2026-05-10 17:23:04,428 [INFO] root (main.py:58 - setup_bot): 已載入模組: game_panel.py
+2026-05-10 17:23:04,430 [INFO] root (main.py:58 - setup_bot): 已載入模組: help.py
+2026-05-10 17:23:04,438 [INFO] root (main.py:58 - setup_bot): 已載入模組: image.py
+2026-05-10 17:23:04,439 [INFO] root (main.py:58 - setup_bot): 已載入模組: info.py
+2026-05-10 17:23:04,440 [INFO] root (main.py:58 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-10 17:23:04,441 [INFO] root (main.py:58 - setup_bot): 已載入模組: leveling.py
+2026-05-10 17:23:04,442 [INFO] root (main.py:58 - setup_bot): 已載入模組: link_fixer.py
+2026-05-10 17:23:04,443 [INFO] root (main.py:58 - setup_bot): 已載入模組: logger.py
+2026-05-10 17:23:04,551 [INFO] root (main.py:58 - setup_bot): 已載入模組: music.py
+2026-05-10 17:23:04,552 [INFO] root (main.py:58 - setup_bot): 已載入模組: profile.py
+2026-05-10 17:23:04,560 [INFO] root (main.py:58 - setup_bot): 已載入模組: weather.py
+2026-05-10 17:23:05,299 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: 32adc031e5e537853248c6173db2cc64).
+2026-05-10 17:23:07,310 [INFO] root (main.py:74 - on_ready): 機器人已登入為 那個#1293
+2026-05-10 17:23:07,315 [INFO] root (main.py:75 - on_ready): 目前服務於 2 個伺服器
+2026-05-10 17:23:21,163 [INFO] root (main.py:80 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: help | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-10 17:23:21,535 [INFO] root (main.py:84 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: help
+2026-05-10 17:24:15,628 [ERROR] asyncio (base_events.py:1875 - default_exception_handler): Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x000001562D922E40>
+2026-05-10 17:25:44,166 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-10 17:25:45,119 [INFO] root (main.py:49 - setup_bot): 已載入模組: economy.py
+2026-05-10 17:25:45,120 [INFO] root (main.py:58 - setup_bot): 已載入模組: admin.py
+2026-05-10 17:25:46,498 [INFO] root (main.py:58 - setup_bot): 已載入模組: ai_chat.py
+2026-05-10 17:25:46,499 [INFO] root (main.py:58 - setup_bot): 已載入模組: auto_voice.py
+2026-05-10 17:25:46,504 [INFO] root (main.py:58 - setup_bot): 已載入模組: broadcast.py
+2026-05-10 17:25:46,505 [INFO] root (main.py:58 - setup_bot): 已載入模組: bug_report.py
+2026-05-10 17:25:46,507 [ERROR] root (main.py:60 - setup_bot): 載入 economy.py 失敗: Extension 'cogs.economy' raised an error: ClientException: Cog named 'Economy' already loaded
+2026-05-10 17:25:46,511 [INFO] root (main.py:58 - setup_bot): 已載入模組: error_handler.py
+2026-05-10 17:25:46,514 [INFO] root (main.py:58 - setup_bot): 已載入模組: finance.py
+2026-05-10 17:25:46,515 [INFO] root (main.py:58 - setup_bot): 已載入模組: fun.py
+2026-05-10 17:25:46,517 [INFO] root (main.py:58 - setup_bot): 已載入模組: gamble.py
+2026-05-10 17:25:46,518 [INFO] root (main.py:58 - setup_bot): 已載入模組: game_panel.py
+2026-05-10 17:25:46,527 [INFO] root (main.py:58 - setup_bot): 已載入模組: help.py
+2026-05-10 17:25:46,534 [INFO] root (main.py:58 - setup_bot): 已載入模組: image.py
+2026-05-10 17:25:46,535 [INFO] root (main.py:58 - setup_bot): 已載入模組: info.py
+2026-05-10 17:25:46,536 [INFO] root (main.py:58 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-10 17:25:46,538 [INFO] root (main.py:58 - setup_bot): 已載入模組: leveling.py
+2026-05-10 17:25:46,538 [INFO] root (main.py:58 - setup_bot): 已載入模組: link_fixer.py
+2026-05-10 17:25:46,539 [INFO] root (main.py:58 - setup_bot): 已載入模組: logger.py
+2026-05-10 17:25:46,644 [INFO] root (main.py:58 - setup_bot): 已載入模組: music.py
+2026-05-10 17:25:46,645 [INFO] root (main.py:58 - setup_bot): 已載入模組: profile.py
+2026-05-10 17:25:46,646 [INFO] root (main.py:58 - setup_bot): 已載入模組: weather.py
+2026-05-10 17:25:47,429 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: ac9940d66a3dfdf8c935c72498a50994).
+2026-05-10 17:25:49,458 [INFO] root (main.py:74 - on_ready): 機器人已登入為 那個#1293
+2026-05-10 17:25:49,459 [INFO] root (main.py:75 - on_ready): 目前服務於 2 個伺服器
+2026-05-10 17:26:11,783 [INFO] root (main.py:80 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-10 17:26:12,980 [INFO] root (main.py:84 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync
+2026-05-10 17:26:26,418 [INFO] root (main.py:80 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: market | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-10 17:26:26,815 [INFO] root (main.py:84 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: market
+2026-05-10 17:26:47,110 [INFO] root (main.py:80 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: portfolio | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-10 17:26:47,520 [INFO] root (main.py:84 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: portfolio
+2026-05-10 17:32:40,447 [ERROR] asyncio (base_events.py:1875 - default_exception_handler): Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x000002791ECB2E40>
+2026-05-10 17:32:41,711 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-10 17:32:42,413 [INFO] root (main.py:49 - setup_bot): 已載入模組: economy.py
+2026-05-10 17:32:42,414 [INFO] root (main.py:58 - setup_bot): 已載入模組: admin.py
+2026-05-10 17:32:43,803 [INFO] root (main.py:58 - setup_bot): 已載入模組: ai_chat.py
+2026-05-10 17:32:43,805 [INFO] root (main.py:58 - setup_bot): 已載入模組: auto_voice.py
+2026-05-10 17:32:43,811 [INFO] root (main.py:58 - setup_bot): 已載入模組: broadcast.py
+2026-05-10 17:32:43,812 [INFO] root (main.py:58 - setup_bot): 已載入模組: bug_report.py
+2026-05-10 17:32:43,813 [ERROR] root (main.py:60 - setup_bot): 載入 economy.py 失敗: Extension 'cogs.economy' raised an error: ClientException: Cog named 'Economy' already loaded
+2026-05-10 17:32:43,815 [INFO] root (main.py:58 - setup_bot): 已載入模組: error_handler.py
+2026-05-10 17:32:43,831 [INFO] root (main.py:58 - setup_bot): 已載入模組: finance.py
+2026-05-10 17:32:43,832 [INFO] root (main.py:58 - setup_bot): 已載入模組: fun.py
+2026-05-10 17:32:43,833 [INFO] root (main.py:58 - setup_bot): 已載入模組: gamble.py
+2026-05-10 17:32:43,834 [INFO] root (main.py:58 - setup_bot): 已載入模組: game_panel.py
+2026-05-10 17:32:43,835 [INFO] root (main.py:58 - setup_bot): 已載入模組: help.py
+2026-05-10 17:32:43,843 [INFO] root (main.py:58 - setup_bot): 已載入模組: image.py
+2026-05-10 17:32:43,844 [INFO] root (main.py:58 - setup_bot): 已載入模組: info.py
+2026-05-10 17:32:43,846 [INFO] root (main.py:58 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-10 17:32:43,848 [INFO] root (main.py:58 - setup_bot): 已載入模組: leveling.py
+2026-05-10 17:32:43,849 [INFO] root (main.py:58 - setup_bot): 已載入模組: link_fixer.py
+2026-05-10 17:32:43,850 [INFO] root (main.py:58 - setup_bot): 已載入模組: logger.py
+2026-05-10 17:32:43,956 [INFO] root (main.py:58 - setup_bot): 已載入模組: music.py
+2026-05-10 17:32:43,957 [INFO] root (main.py:58 - setup_bot): 已載入模組: profile.py
+2026-05-10 17:32:43,958 [INFO] root (main.py:58 - setup_bot): 已載入模組: weather.py
+2026-05-10 17:32:44,860 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: 09287dcca8fbf4399096107fac60cb48).
+2026-05-10 17:32:46,871 [INFO] root (main.py:74 - on_ready): 機器人已登入為 那個#1293
+2026-05-10 17:32:46,872 [INFO] root (main.py:75 - on_ready): 目前服務於 2 個伺服器
+2026-05-10 17:32:52,282 [INFO] root (main.py:80 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-10 17:32:53,316 [INFO] root (main.py:84 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync
+2026-05-10 17:33:05,967 [INFO] root (main.py:80 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: setmarketnews | 頻道: #更新 | 伺服器: 機器人測試服
+2026-05-10 17:33:06,355 [INFO] root (main.py:84 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: setmarketnews
+2026-05-10 17:44:13,554 [ERROR] asyncio (base_events.py:1875 - default_exception_handler): Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x000001D4AB052E40>
+2026-05-10 17:44:14,760 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-10 17:44:15,623 [INFO] root (main.py:49 - setup_bot): 已載入模組: economy.py
+2026-05-10 17:44:15,631 [INFO] root (main.py:58 - setup_bot): 已載入模組: admin.py
+2026-05-10 17:44:17,030 [INFO] root (main.py:58 - setup_bot): 已載入模組: ai_chat.py
+2026-05-10 17:44:17,047 [INFO] root (main.py:58 - setup_bot): 已載入模組: auto_voice.py
+2026-05-10 17:44:17,071 [INFO] root (main.py:58 - setup_bot): 已載入模組: broadcast.py
+2026-05-10 17:44:17,082 [INFO] root (main.py:58 - setup_bot): 已載入模組: bug_report.py
+2026-05-10 17:44:17,097 [ERROR] root (main.py:60 - setup_bot): 載入 economy.py 失敗: Extension 'cogs.economy' raised an error: ClientException: Cog named 'Economy' already loaded
+2026-05-10 17:44:17,112 [INFO] root (main.py:58 - setup_bot): 已載入模組: error_handler.py
+2026-05-10 17:44:17,127 [INFO] root (main.py:58 - setup_bot): 已載入模組: finance.py
+2026-05-10 17:44:17,138 [INFO] root (main.py:58 - setup_bot): 已載入模組: fun.py
+2026-05-10 17:44:17,151 [INFO] root (main.py:58 - setup_bot): 已載入模組: gamble.py
+2026-05-10 17:44:17,165 [INFO] root (main.py:58 - setup_bot): 已載入模組: game_panel.py
+2026-05-10 17:44:17,179 [INFO] root (main.py:58 - setup_bot): 已載入模組: help.py
+2026-05-10 17:44:17,201 [INFO] root (main.py:58 - setup_bot): 已載入模組: image.py
+2026-05-10 17:44:17,209 [INFO] root (main.py:58 - setup_bot): 已載入模組: info.py
+2026-05-10 17:44:17,220 [INFO] root (main.py:58 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-10 17:44:17,233 [INFO] root (main.py:58 - setup_bot): 已載入模組: leveling.py
+2026-05-10 17:44:17,243 [INFO] root (main.py:58 - setup_bot): 已載入模組: link_fixer.py
+2026-05-10 17:44:17,258 [INFO] root (main.py:58 - setup_bot): 已載入模組: logger.py
+2026-05-10 17:44:17,386 [INFO] root (main.py:58 - setup_bot): 已載入模組: music.py
+2026-05-10 17:44:17,387 [INFO] root (main.py:58 - setup_bot): 已載入模組: profile.py
+2026-05-10 17:44:17,396 [INFO] root (main.py:58 - setup_bot): 已載入模組: weather.py
+2026-05-10 17:44:18,165 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: 508a4990d136a281c0f80524259e0bb0).
+2026-05-10 17:44:20,185 [INFO] root (main.py:74 - on_ready): 機器人已登入為 那個#1293
+2026-05-10 17:44:20,186 [INFO] root (main.py:75 - on_ready): 目前服務於 2 個伺服器
+2026-05-10 17:44:35,202 [INFO] root (main.py:80 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: market | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-10 17:44:35,579 [INFO] root (main.py:84 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: market
+2026-05-10 17:44:51,072 [INFO] root (main.py:80 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: help | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-10 17:44:51,491 [INFO] root (main.py:84 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: help
+2026-05-10 17:44:59,631 [INFO] root (main.py:80 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: info | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-10 17:45:00,000 [INFO] root (main.py:84 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: info
+2026-05-10 17:45:16,790 [INFO] root (main.py:80 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: status | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-10 17:45:17,225 [INFO] root (main.py:84 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: status
+2026-05-10 17:45:35,901 [INFO] root (main.py:80 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: adminhelp | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-10 17:45:36,295 [INFO] root (main.py:84 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: adminhelp
+2026-05-10 17:48:28,254 [ERROR] asyncio (base_events.py:1875 - default_exception_handler): Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x000001E421B92E40>
+2026-05-10 17:48:29,833 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-10 17:48:30,606 [INFO] root (main.py:51 - setup_bot): 已載入模組: admin.py
+2026-05-10 17:48:31,985 [INFO] root (main.py:51 - setup_bot): 已載入模組: ai_chat.py
+2026-05-10 17:48:31,987 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_voice.py
+2026-05-10 17:48:31,992 [INFO] root (main.py:51 - setup_bot): 已載入模組: broadcast.py
+2026-05-10 17:48:31,993 [INFO] root (main.py:51 - setup_bot): 已載入模組: bug_report.py
+2026-05-10 17:48:31,994 [INFO] root (main.py:51 - setup_bot): 已載入模組: economy.py
+2026-05-10 17:48:31,995 [INFO] root (main.py:51 - setup_bot): 已載入模組: error_handler.py
+2026-05-10 17:48:31,997 [INFO] root (main.py:51 - setup_bot): 已載入模組: finance.py
+2026-05-10 17:48:31,997 [INFO] root (main.py:51 - setup_bot): 已載入模組: fun.py
+2026-05-10 17:48:32,000 [INFO] root (main.py:51 - setup_bot): 已載入模組: gamble.py
+2026-05-10 17:48:32,002 [INFO] root (main.py:51 - setup_bot): 已載入模組: game_panel.py
+2026-05-10 17:48:32,012 [ERROR] root (main.py:53 - setup_bot): 載入 help.py 失敗: Extension 'cogs.help' raised an error: SyntaxError: expected 'except' or 'finally' block (help.py, line 135)
+2026-05-10 17:48:32,022 [INFO] root (main.py:51 - setup_bot): 已載入模組: image.py
+2026-05-10 17:48:32,023 [INFO] root (main.py:51 - setup_bot): 已載入模組: info.py
+2026-05-10 17:48:32,024 [INFO] root (main.py:51 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-10 17:48:32,025 [INFO] root (main.py:51 - setup_bot): 已載入模組: leveling.py
+2026-05-10 17:48:32,026 [INFO] root (main.py:51 - setup_bot): 已載入模組: link_fixer.py
+2026-05-10 17:48:32,027 [INFO] root (main.py:51 - setup_bot): 已載入模組: logger.py
+2026-05-10 17:48:32,136 [INFO] root (main.py:51 - setup_bot): 已載入模組: music.py
+2026-05-10 17:48:32,137 [INFO] root (main.py:51 - setup_bot): 已載入模組: profile.py
+2026-05-10 17:48:32,138 [INFO] root (main.py:51 - setup_bot): 已載入模組: weather.py
+2026-05-10 17:48:32,974 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: 214f9945c867d3f4c824b9eea1250b0c).
+2026-05-10 17:48:34,994 [INFO] root (main.py:67 - on_ready): 機器人已登入為 那個#1293
+2026-05-10 17:48:34,996 [INFO] root (main.py:68 - on_ready): 目前服務於 2 個伺服器
+2026-05-10 17:49:10,638 [ERROR] discord.app_commands.tree (tree.py:821 - on_error): Ignoring exception in command tree
+Traceback (most recent call last):
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\tree.py", line 1138, in wrapper
+    await self._call(interaction)
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\tree.py", line 1270, in _call
+    command, options = self._get_app_command_options(data)
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\tree.py", line 1174, in _get_app_command_options
+    raise CommandNotFound(name, parents)
+discord.app_commands.errors.CommandNotFound: Application command 'help' not found
+2026-05-10 17:49:23,751 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-10 17:49:25,073 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync
+2026-05-10 17:49:28,809 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-10 17:49:29,970 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync
+2026-05-10 18:26:54,415 [INFO] discord.gateway (gateway.py:584 - received_message): Shard ID None has successfully RESUMED session 214f9945c867d3f4c824b9eea1250b0c.
+2026-05-10 19:32:44,682 [ERROR] discord.app_commands.tree (tree.py:821 - on_error): Ignoring exception in command tree
+Traceback (most recent call last):
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\tree.py", line 1138, in wrapper
+    await self._call(interaction)
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\tree.py", line 1270, in _call
+    command, options = self._get_app_command_options(data)
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\tree.py", line 1174, in _get_app_command_options
+    raise CommandNotFound(name, parents)
+discord.app_commands.errors.CommandNotFound: Application command 'listreplies' not found
+2026-05-10 20:03:53,949 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: portfolio | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-10 20:03:54,388 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: portfolio
+2026-05-10 22:02:04,174 [INFO] discord.gateway (gateway.py:584 - received_message): Shard ID None has successfully RESUMED session 214f9945c867d3f4c824b9eea1250b0c.

@@ -1,73 +1,72 @@
 import discord
 from discord.ext import commands
+import sys
+import traceback
+import logging
 
 class ErrorHandler(commands.Cog):
-    def __init__(self, bot):
+    """一個用來處理指令錯誤的全域處理器。"""
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     @commands.Cog.listener()
-    async def on_command_error(self, ctx, error):
-        # 建立一個基礎的 Embed，預設為紅色
-        embed = discord.Embed(color=discord.Color.red())
+    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
+        # 忽略有自訂錯誤處理器的指令
+        if hasattr(ctx.command, 'on_error'):
+            return
+
+        # 取得最原始的錯誤
+        error = getattr(error, 'original', error)
+
+        # 忽略特定錯誤 (例如：找不到指令)
+        if isinstance(error, (commands.CommandNotFound,)):
+            return
+
+        embed = discord.Embed(title="🚨 發生了一點錯誤", color=discord.Color.red())
+
+        if isinstance(error, commands.DisabledCommand):
+            embed.description = f"目前 `{ctx.command}` 指令暫時被停用了喔。"
         
-        # 1. 處理缺少必要參數錯誤
-        if isinstance(error, commands.MissingRequiredArgument):
-            embed.title = "❌ 缺少必要參數"
-            if ctx.command.name == "weather":
-                embed.description = "你忘記輸入地區了啦！\n👉 **正確用法**：`/天氣 台北市 信義區` 或 `/w 高雄`"
-            elif ctx.command.name in ["meme", "jail"]:
-                embed.description = "你忘記輸入迷因的文字或標記了啦！\n👉 **正確用法**：`/meme 今晚打遊戲 | 還是早點睡覺`"
-            elif ctx.command.name == "poll":
-                embed.description = "你忘記輸入問題了啦！\n👉 **正確用法**：`/poll 今晚吃什麼？ | 火鍋 | 燒肉`"
-            elif ctx.command.name == "buy":
-                embed.description = "你忘記打要買什麼了！\n👉 **正確用法**：`/buy 1` 或 `/buy 神秘寶箱`"
-            elif ctx.command.name == "use":
-                embed.description = "你忘記輸入要使用什麼物品了！\n👉 **正確用法**：`/use 神秘寶箱`"
-            else:
-                embed.description = f"缺少必要的參數：`{error.param.name}`\n👉 請輸入 `/help {ctx.command.name}` 查看正確用法！"
-            await ctx.send(embed=embed)
-
-        # 2. 處理冷卻時間錯誤
         elif isinstance(error, commands.CommandOnCooldown):
-            embed.title = "⏱️ 指令冷卻中"
-            embed.color = discord.Color.orange() # 冷卻錯誤改成橘色
-            if ctx.command.name in ["daily", "work"]:
-                m, s = divmod(int(error.retry_after), 60)
-                h, m = divmod(m, 60)
-                if h > 0:
-                    embed.description = f"休息一下！請等待 **{h} 小時 {m} 分鐘** 後再來。"
-                else:
-                    embed.description = f"休息一下！請等待 **{m} 分鐘 {s} 秒** 後再來。\n💡 *你可以去商店買 `精力飲料` 來解除冷卻！*"
-            elif ctx.command.name == "chat":
-                embed.description = f"欸欸你打字太快了啦！等 **{error.retry_after:.1f} 秒** 再密我。"
-            else:
-                embed.description = f"查詢太頻繁啦！請等待 **{error.retry_after:.1f} 秒** 後再試。"
-            await ctx.send(embed=embed)
+            embed.title = "⏳ 技能冷卻中"
+            embed.description = f"稍微休息一下吧！請稍等 {error.retry_after:.2f} 秒後再試一次。"
+            embed.color = discord.Color.orange()
 
-        # 3. 處理權限不足錯誤
         elif isinstance(error, commands.MissingPermissions):
-            embed.title = "🚫 權限不足"
-            embed.description = "嘿！你沒有權限使用這個指令喔！"
-            await ctx.send(embed=embed)
-
-        # 4. 處理參數格式錯誤 (例如需要數字卻輸入文字，或是找不到標記的成員)
-        elif isinstance(error, (commands.BadArgument, commands.MemberNotFound, commands.UserNotFound)):
-            embed.title = "❌ 參數格式錯誤"
-            embed.description = f"你輸入的參數格式不對，或者找不到該目標喔！\n👉 請輸入 `/help {ctx.command.name}` 查看正確用法！"
-            await ctx.send(embed=embed)
-
-        # 5. 忽略無效的指令錯誤 (例如玩家輸入 !不存在的指令)
-        elif isinstance(error, commands.CommandNotFound):
-            pass
+            embed.description = f"你好像沒有權限使用 `{ctx.command}` 喔！\n需要的權限：`{'`, `'.join(error.missing_permissions)}`"
             
-        else:
-            # 擷取深層真正的錯誤訊息 (過濾掉 Discord.py 的包裝)
-            if isinstance(error, commands.CommandInvokeError):
-                error = error.original
-            embed.title = "⚠️ 發生未預期的錯誤"
-            embed.description = f"```\n{error}\n```"
-            await ctx.send(embed=embed)
-            print(f"未預期的錯誤發生於 {ctx.command}: {error}")
+        elif isinstance(error, commands.BotMissingPermissions):
+            embed.description = f"我沒有足夠的權限執行這個指令！\n需要的權限：`{'`, `'.join(error.missing_permissions)}`"
 
-async def setup(bot):
+        elif isinstance(error, commands.UserInputError):
+            embed.description = f"指令的格式好像不太對喔！\n可以使用 `{ctx.prefix}help {ctx.command}` 查看正確的用法。"
+
+        else:
+            # 其他所有未處理的錯誤
+            embed.description = "發生了未知的錯誤，我會盡快回報給管理員處理。"
+            # 企業級優化：將例外拋入日誌系統，而非單純 print，以便後續集中監控
+            logging.error(f'Ignoring exception in command {ctx.command}:', exc_info=error)
+
+        # --- 核心修復邏輯 ---
+        # 嘗試發送錯誤訊息。如果因為互動已被確認而失敗，則改用 followup.send()
+        try:
+            # 對於混合指令，ctx.send() 會自動判斷。但為了處理競態條件，我們需要手動捕捉錯誤。
+            await ctx.send(embed=embed, ephemeral=True)
+        except discord.errors.HTTPException as e:
+            # 錯誤碼 40060 代表 "Interaction has already been acknowledged"
+            if e.code == 40060:
+                try:
+                    # 如果初始回應失敗，就改用後續訊息發送
+                    await ctx.followup.send(embed=embed, ephemeral=True)
+                except discord.errors.HTTPException as followup_e:
+                    print(f"連後續錯誤訊息都發送失敗: {followup_e}", file=sys.stderr)
+            else:
+                # 如果是其他 HTTP 錯誤，則印出
+                print(f"發送錯誤訊息時發生 HTTP 錯誤: {e}", file=sys.stderr)
+        except Exception as final_e:
+            # 處理其他所有在發送錯誤訊息時可能發生的意外
+            print(f"在錯誤處理期間發生了無法預期的錯誤: {final_e}", file=sys.stderr)
+
+
+async def setup(bot: commands.Bot):
     await bot.add_cog(ErrorHandler(bot))

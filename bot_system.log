@@ -1,0 +1,683 @@
+2026-05-11 01:19:51,061 [INFO] discord.gateway (gateway.py:584 - received_message): Shard ID None has successfully RESUMED session 214f9945c867d3f4c824b9eea1250b0c.
+2026-05-11 01:53:38,538 [ERROR] asyncio (base_events.py:1875 - default_exception_handler): Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x0000028B1D812E40>
+2026-05-11 01:53:41,599 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-11 01:53:42,397 [INFO] root (main.py:51 - setup_bot): 已載入模組: admin.py
+2026-05-11 01:53:43,942 [INFO] root (main.py:51 - setup_bot): 已載入模組: ai_chat.py
+2026-05-11 01:53:43,944 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_voice.py
+2026-05-11 01:53:43,986 [INFO] root (main.py:51 - setup_bot): 已載入模組: broadcast.py
+2026-05-11 01:53:43,987 [INFO] root (main.py:51 - setup_bot): 已載入模組: bug_report.py
+2026-05-11 01:53:43,988 [INFO] root (main.py:51 - setup_bot): 已載入模組: economy.py
+2026-05-11 01:53:43,989 [INFO] root (main.py:51 - setup_bot): 已載入模組: error_handler.py
+2026-05-11 01:53:43,991 [INFO] root (main.py:51 - setup_bot): 已載入模組: finance.py
+2026-05-11 01:53:43,991 [INFO] root (main.py:51 - setup_bot): 已載入模組: fun.py
+2026-05-11 01:53:43,993 [INFO] root (main.py:51 - setup_bot): 已載入模組: gamble.py
+2026-05-11 01:53:43,994 [INFO] root (main.py:51 - setup_bot): 已載入模組: game_panel.py
+2026-05-11 01:53:44,005 [INFO] root (main.py:51 - setup_bot): 已載入模組: help.py
+2026-05-11 01:53:44,025 [INFO] root (main.py:51 - setup_bot): 已載入模組: image.py
+2026-05-11 01:53:44,026 [INFO] root (main.py:51 - setup_bot): 已載入模組: info.py
+2026-05-11 01:53:44,027 [INFO] root (main.py:51 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-11 01:53:44,028 [INFO] root (main.py:51 - setup_bot): 已載入模組: leveling.py
+2026-05-11 01:53:44,029 [INFO] root (main.py:51 - setup_bot): 已載入模組: link_fixer.py
+2026-05-11 01:53:44,030 [INFO] root (main.py:51 - setup_bot): 已載入模組: logger.py
+2026-05-11 01:53:44,152 [INFO] root (main.py:51 - setup_bot): 已載入模組: music.py
+2026-05-11 01:53:44,153 [INFO] root (main.py:51 - setup_bot): 已載入模組: profile.py
+2026-05-11 01:53:44,154 [INFO] root (main.py:51 - setup_bot): 已載入模組: weather.py
+2026-05-11 01:53:45,144 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: 7674817a6b808e4c41acea067345c889).
+2026-05-11 01:53:47,153 [INFO] root (main.py:67 - on_ready): 機器人已登入為 那個#1293
+2026-05-11 01:53:47,153 [INFO] root (main.py:68 - on_ready): 目前服務於 2 個伺服器
+2026-05-11 01:53:58,497 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync | 頻道: #新聞 | 伺服器: 機器人測試服
+2026-05-11 01:54:00,102 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync
+2026-05-11 01:54:40,909 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: setmarketnews | 頻道: #新聞 | 伺服器: 機器人測試服
+2026-05-11 01:54:41,407 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: setmarketnews
+2026-05-11 02:04:35,046 [ERROR] asyncio (base_events.py:1875 - default_exception_handler): Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x0000020E383B1E80>
+2026-05-11 02:04:36,779 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-11 02:04:37,909 [INFO] root (main.py:51 - setup_bot): 已載入模組: admin.py
+2026-05-11 02:04:39,239 [INFO] root (main.py:51 - setup_bot): 已載入模組: ai_chat.py
+2026-05-11 02:04:39,249 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_reply.py
+2026-05-11 02:04:39,251 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_voice.py
+2026-05-11 02:04:39,258 [INFO] root (main.py:51 - setup_bot): 已載入模組: broadcast.py
+2026-05-11 02:04:39,259 [INFO] root (main.py:51 - setup_bot): 已載入模組: bug_report.py
+2026-05-11 02:04:39,260 [INFO] root (main.py:51 - setup_bot): 已載入模組: economy.py
+2026-05-11 02:04:39,261 [INFO] root (main.py:51 - setup_bot): 已載入模組: error_handler.py
+2026-05-11 02:04:39,262 [INFO] root (main.py:51 - setup_bot): 已載入模組: finance.py
+2026-05-11 02:04:39,263 [INFO] root (main.py:51 - setup_bot): 已載入模組: fun.py
+2026-05-11 02:04:39,264 [INFO] root (main.py:51 - setup_bot): 已載入模組: gamble.py
+2026-05-11 02:04:39,266 [INFO] root (main.py:51 - setup_bot): 已載入模組: game_panel.py
+2026-05-11 02:04:39,275 [INFO] root (main.py:51 - setup_bot): 已載入模組: help.py
+2026-05-11 02:04:39,281 [INFO] root (main.py:51 - setup_bot): 已載入模組: image.py
+2026-05-11 02:04:39,282 [INFO] root (main.py:51 - setup_bot): 已載入模組: info.py
+2026-05-11 02:04:39,283 [INFO] root (main.py:51 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-11 02:04:39,285 [INFO] root (main.py:51 - setup_bot): 已載入模組: leveling.py
+2026-05-11 02:04:39,285 [INFO] root (main.py:51 - setup_bot): 已載入模組: link_fixer.py
+2026-05-11 02:04:39,286 [INFO] root (main.py:51 - setup_bot): 已載入模組: logger.py
+2026-05-11 02:04:39,396 [INFO] root (main.py:51 - setup_bot): 已載入模組: music.py
+2026-05-11 02:04:39,397 [INFO] root (main.py:51 - setup_bot): 已載入模組: profile.py
+2026-05-11 02:04:39,398 [INFO] root (main.py:51 - setup_bot): 已載入模組: weather.py
+2026-05-11 02:04:40,471 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: f2d8e02aabd02b680e35318079e0b7c8).
+2026-05-11 02:04:42,495 [INFO] root (main.py:67 - on_ready): 機器人已登入為 那個#1293
+2026-05-11 02:04:42,496 [INFO] root (main.py:68 - on_ready): 目前服務於 2 個伺服器
+2026-05-11 02:04:51,283 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync | 頻道: #新聞 | 伺服器: 機器人測試服
+2026-05-11 02:04:51,284 [ERROR] discord.client (client.py:582 - on_error): Ignoring exception in on_message
+Traceback (most recent call last):
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\client.py", line 508, in _run_event
+    await coro(*args, **kwargs)
+  File "E:\DISCORD BOT\cogs\auto_reply.py", line 20, in on_message
+    async with self.bot.db.db.execute('SELECT keyword, reply FROM auto_replies WHERE guild_id = ?', (message.guild.id,)) as cursor:
+               ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\context.py", line 41, in __aenter__
+    self._obj = await self._coro
+                ^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 223, in execute
+    cursor = await self._execute(self._conn.execute, sql, parameters)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 160, in _execute
+    return await future
+           ^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 63, in _connection_worker_thread
+    result = function()
+sqlite3.OperationalError: no such column: guild_id
+2026-05-11 02:04:52,288 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync
+2026-05-11 02:05:08,905 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: addreply | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:05:08,906 [ERROR] root (error_handler.py:48 - on_command_error): Ignoring exception in command addreply:
+Traceback (most recent call last):
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\commands.py", line 858, in _do_call
+    return await self._callback(self.binding, interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\DISCORD BOT\cogs\auto_reply.py", line 35, in add_reply
+    await self.bot.db.db.execute('INSERT OR REPLACE INTO auto_replies (guild_id, keyword, reply) VALUES (?, ?, ?)', (ctx.guild.id, keyword, reply))
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 223, in execute
+    cursor = await self._execute(self._conn.execute, sql, parameters)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 160, in _execute
+    return await future
+           ^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 63, in _connection_worker_thread
+    result = function()
+sqlite3.OperationalError: table auto_replies has no column named guild_id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\ext\commands\hybrid.py", line 463, in _invoke_with_namespace
+    value = await self._do_call(ctx, ctx.kwargs)  # type: ignore
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'addreply' raised an exception: OperationalError: table auto_replies has no column named guild_id
+2026-05-11 02:09:40,742 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-11 02:09:41,501 [INFO] root (main.py:51 - setup_bot): 已載入模組: admin.py
+2026-05-11 02:09:42,837 [INFO] root (main.py:51 - setup_bot): 已載入模組: ai_chat.py
+2026-05-11 02:09:42,854 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_reply.py
+2026-05-11 02:09:42,855 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_voice.py
+2026-05-11 02:09:42,862 [INFO] root (main.py:51 - setup_bot): 已載入模組: broadcast.py
+2026-05-11 02:09:42,863 [INFO] root (main.py:51 - setup_bot): 已載入模組: bug_report.py
+2026-05-11 02:09:42,865 [INFO] root (main.py:51 - setup_bot): 已載入模組: economy.py
+2026-05-11 02:09:42,865 [INFO] root (main.py:51 - setup_bot): 已載入模組: error_handler.py
+2026-05-11 02:09:42,868 [INFO] root (main.py:51 - setup_bot): 已載入模組: finance.py
+2026-05-11 02:09:42,869 [INFO] root (main.py:51 - setup_bot): 已載入模組: fun.py
+2026-05-11 02:09:42,870 [INFO] root (main.py:51 - setup_bot): 已載入模組: gamble.py
+2026-05-11 02:09:42,872 [INFO] root (main.py:51 - setup_bot): 已載入模組: game_panel.py
+2026-05-11 02:09:42,881 [INFO] root (main.py:51 - setup_bot): 已載入模組: help.py
+2026-05-11 02:09:42,888 [INFO] root (main.py:51 - setup_bot): 已載入模組: image.py
+2026-05-11 02:09:42,889 [INFO] root (main.py:51 - setup_bot): 已載入模組: info.py
+2026-05-11 02:09:42,890 [INFO] root (main.py:51 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-11 02:09:42,892 [INFO] root (main.py:51 - setup_bot): 已載入模組: leveling.py
+2026-05-11 02:09:42,893 [INFO] root (main.py:51 - setup_bot): 已載入模組: link_fixer.py
+2026-05-11 02:09:42,894 [INFO] root (main.py:51 - setup_bot): 已載入模組: logger.py
+2026-05-11 02:09:43,004 [INFO] root (main.py:51 - setup_bot): 已載入模組: music.py
+2026-05-11 02:09:43,005 [INFO] root (main.py:51 - setup_bot): 已載入模組: profile.py
+2026-05-11 02:09:43,006 [INFO] root (main.py:51 - setup_bot): 已載入模組: weather.py
+2026-05-11 02:09:43,731 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: d0ba3de758173016f402668862951aeb).
+2026-05-11 02:09:45,754 [INFO] root (main.py:67 - on_ready): 機器人已登入為 那個#1293
+2026-05-11 02:09:45,756 [INFO] root (main.py:68 - on_ready): 目前服務於 2 個伺服器
+2026-05-11 02:10:11,261 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: addreply | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:10:11,707 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: addreply
+2026-05-11 02:10:28,237 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: listreplies | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:10:28,612 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: listreplies
+2026-05-11 02:12:52,802 [ERROR] asyncio (base_events.py:1875 - default_exception_handler): Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x0000024F76F52E40>
+2026-05-11 02:12:54,184 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-11 02:12:54,931 [INFO] root (main.py:51 - setup_bot): 已載入模組: admin.py
+2026-05-11 02:12:56,397 [INFO] root (main.py:51 - setup_bot): 已載入模組: ai_chat.py
+2026-05-11 02:12:56,408 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_reply.py
+2026-05-11 02:12:56,409 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_voice.py
+2026-05-11 02:12:56,416 [INFO] root (main.py:51 - setup_bot): 已載入模組: broadcast.py
+2026-05-11 02:12:56,418 [INFO] root (main.py:51 - setup_bot): 已載入模組: bug_report.py
+2026-05-11 02:12:56,420 [INFO] root (main.py:51 - setup_bot): 已載入模組: economy.py
+2026-05-11 02:12:56,420 [INFO] root (main.py:51 - setup_bot): 已載入模組: error_handler.py
+2026-05-11 02:12:56,423 [INFO] root (main.py:51 - setup_bot): 已載入模組: finance.py
+2026-05-11 02:12:56,424 [INFO] root (main.py:51 - setup_bot): 已載入模組: fun.py
+2026-05-11 02:12:56,425 [INFO] root (main.py:51 - setup_bot): 已載入模組: gamble.py
+2026-05-11 02:12:56,426 [INFO] root (main.py:51 - setup_bot): 已載入模組: game_panel.py
+2026-05-11 02:12:56,428 [INFO] root (main.py:51 - setup_bot): 已載入模組: help.py
+2026-05-11 02:12:56,434 [INFO] root (main.py:51 - setup_bot): 已載入模組: image.py
+2026-05-11 02:12:56,435 [INFO] root (main.py:51 - setup_bot): 已載入模組: info.py
+2026-05-11 02:12:56,436 [INFO] root (main.py:51 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-11 02:12:56,438 [INFO] root (main.py:51 - setup_bot): 已載入模組: leveling.py
+2026-05-11 02:12:56,438 [INFO] root (main.py:51 - setup_bot): 已載入模組: link_fixer.py
+2026-05-11 02:12:56,439 [INFO] root (main.py:51 - setup_bot): 已載入模組: logger.py
+2026-05-11 02:12:56,551 [INFO] root (main.py:51 - setup_bot): 已載入模組: music.py
+2026-05-11 02:12:56,552 [INFO] root (main.py:51 - setup_bot): 已載入模組: profile.py
+2026-05-11 02:12:56,552 [INFO] root (main.py:51 - setup_bot): 已載入模組: weather.py
+2026-05-11 02:12:57,415 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: 0267d606d2d25b0b47987bdbdbaa7904).
+2026-05-11 02:12:59,427 [INFO] root (main.py:67 - on_ready): 機器人已登入為 那個#1293
+2026-05-11 02:12:59,428 [INFO] root (main.py:68 - on_ready): 目前服務於 2 個伺服器
+2026-05-11 02:13:06,814 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: adminhelp | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:13:07,150 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: adminhelp
+2026-05-11 02:13:16,064 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: help | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:13:16,477 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: help
+2026-05-11 02:14:10,368 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: market | 頻道: #新聞 | 伺服器: 機器人測試服
+2026-05-11 02:14:10,794 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: market
+2026-05-11 02:14:19,334 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: portfolio | 頻道: #新聞 | 伺服器: 機器人測試服
+2026-05-11 02:14:19,771 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: portfolio
+2026-05-11 02:15:51,435 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync | 頻道: #log | 伺服器: 機器人測試服
+2026-05-11 02:15:52,654 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync
+2026-05-11 02:16:11,416 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: addglobalreply | 頻道: #log | 伺服器: 機器人測試服
+2026-05-11 02:16:12,418 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: addglobalreply
+2026-05-11 02:41:00,393 [ERROR] asyncio (base_events.py:1875 - default_exception_handler): Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x000002A861D62E40>
+2026-05-11 02:41:02,394 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-11 02:41:03,186 [INFO] root (main.py:51 - setup_bot): 已載入模組: admin.py
+2026-05-11 02:41:04,541 [INFO] root (main.py:51 - setup_bot): 已載入模組: ai_chat.py
+2026-05-11 02:41:04,544 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_reply.py
+2026-05-11 02:41:04,545 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_voice.py
+2026-05-11 02:41:04,551 [INFO] root (main.py:51 - setup_bot): 已載入模組: broadcast.py
+2026-05-11 02:41:04,553 [INFO] root (main.py:51 - setup_bot): 已載入模組: bug_report.py
+2026-05-11 02:41:04,554 [INFO] root (main.py:51 - setup_bot): 已載入模組: economy.py
+2026-05-11 02:41:04,556 [INFO] root (main.py:51 - setup_bot): 已載入模組: error_handler.py
+2026-05-11 02:41:04,558 [INFO] root (main.py:51 - setup_bot): 已載入模組: finance.py
+2026-05-11 02:41:04,568 [INFO] root (main.py:51 - setup_bot): 已載入模組: food.py
+2026-05-11 02:41:04,571 [INFO] root (main.py:51 - setup_bot): 已載入模組: fun.py
+2026-05-11 02:41:04,583 [INFO] root (main.py:51 - setup_bot): 已載入模組: gamble.py
+2026-05-11 02:41:04,585 [INFO] root (main.py:51 - setup_bot): 已載入模組: game_panel.py
+2026-05-11 02:41:04,594 [INFO] root (main.py:51 - setup_bot): 已載入模組: help.py
+2026-05-11 02:41:04,601 [INFO] root (main.py:51 - setup_bot): 已載入模組: image.py
+2026-05-11 02:41:04,602 [INFO] root (main.py:51 - setup_bot): 已載入模組: info.py
+2026-05-11 02:41:04,603 [INFO] root (main.py:51 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-11 02:41:04,605 [INFO] root (main.py:51 - setup_bot): 已載入模組: leveling.py
+2026-05-11 02:41:04,605 [INFO] root (main.py:51 - setup_bot): 已載入模組: link_fixer.py
+2026-05-11 02:41:04,606 [INFO] root (main.py:51 - setup_bot): 已載入模組: logger.py
+2026-05-11 02:41:04,716 [INFO] root (main.py:51 - setup_bot): 已載入模組: music.py
+2026-05-11 02:41:04,717 [INFO] root (main.py:51 - setup_bot): 已載入模組: profile.py
+2026-05-11 02:41:04,718 [INFO] root (main.py:51 - setup_bot): 已載入模組: weather.py
+2026-05-11 02:41:05,699 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: b5c8d4f49f23b29b0a39cce053c9cec8).
+2026-05-11 02:41:07,710 [INFO] root (main.py:67 - on_ready): 機器人已登入為 那個#1293
+2026-05-11 02:41:07,711 [INFO] root (main.py:68 - on_ready): 目前服務於 2 個伺服器
+2026-05-11 02:41:10,814 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:41:12,794 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync
+2026-05-11 02:41:26,871 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: help | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:41:27,295 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: help
+2026-05-11 02:41:42,005 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: slots | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:41:43,820 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: slots
+2026-05-11 02:41:59,983 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: coinflip | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:42:14,713 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: coinflip | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:42:15,185 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: coinflip
+2026-05-11 02:42:51,199 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: blackjack | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:42:51,657 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: blackjack
+2026-05-11 02:50:01,312 [ERROR] asyncio (base_events.py:1875 - default_exception_handler): Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x0000016DC4B82E40>
+2026-05-11 02:50:02,876 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-11 02:50:03,607 [INFO] root (main.py:51 - setup_bot): 已載入模組: admin.py
+2026-05-11 02:50:05,013 [INFO] root (main.py:51 - setup_bot): 已載入模組: ai_chat.py
+2026-05-11 02:50:05,015 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_reply.py
+2026-05-11 02:50:05,016 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_voice.py
+2026-05-11 02:50:05,021 [INFO] root (main.py:51 - setup_bot): 已載入模組: broadcast.py
+2026-05-11 02:50:05,022 [INFO] root (main.py:51 - setup_bot): 已載入模組: bug_report.py
+2026-05-11 02:50:05,023 [INFO] root (main.py:51 - setup_bot): 已載入模組: economy.py
+2026-05-11 02:50:05,023 [INFO] root (main.py:51 - setup_bot): 已載入模組: error_handler.py
+2026-05-11 02:50:05,025 [INFO] root (main.py:51 - setup_bot): 已載入模組: finance.py
+2026-05-11 02:50:05,027 [INFO] root (main.py:51 - setup_bot): 已載入模組: food.py
+2026-05-11 02:50:05,027 [INFO] root (main.py:51 - setup_bot): 已載入模組: fun.py
+2026-05-11 02:50:05,041 [INFO] root (main.py:51 - setup_bot): 已載入模組: gamble.py
+2026-05-11 02:50:05,042 [INFO] root (main.py:51 - setup_bot): 已載入模組: game_panel.py
+2026-05-11 02:50:05,043 [INFO] root (main.py:51 - setup_bot): 已載入模組: help.py
+2026-05-11 02:50:05,050 [INFO] root (main.py:51 - setup_bot): 已載入模組: image.py
+2026-05-11 02:50:05,051 [INFO] root (main.py:51 - setup_bot): 已載入模組: info.py
+2026-05-11 02:50:05,052 [INFO] root (main.py:51 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-11 02:50:05,053 [INFO] root (main.py:51 - setup_bot): 已載入模組: leveling.py
+2026-05-11 02:50:05,054 [INFO] root (main.py:51 - setup_bot): 已載入模組: link_fixer.py
+2026-05-11 02:50:05,055 [INFO] root (main.py:51 - setup_bot): 已載入模組: logger.py
+2026-05-11 02:50:05,168 [INFO] root (main.py:51 - setup_bot): 已載入模組: music.py
+2026-05-11 02:50:05,169 [INFO] root (main.py:51 - setup_bot): 已載入模組: profile.py
+2026-05-11 02:50:05,171 [INFO] root (main.py:51 - setup_bot): 已載入模組: weather.py
+2026-05-11 02:50:06,012 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: d661e196dfdca193f7f818d974a606d9).
+2026-05-11 02:50:08,083 [INFO] root (main.py:67 - on_ready): 機器人已登入為 那個#1293
+2026-05-11 02:50:08,083 [INFO] root (main.py:68 - on_ready): 目前服務於 2 個伺服器
+2026-05-11 02:50:20,973 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: blackjack | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:50:21,358 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: blackjack
+2026-05-11 02:53:45,317 [ERROR] asyncio (base_events.py:1875 - default_exception_handler): Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x0000023497171BE0>
+2026-05-11 02:53:47,019 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-11 02:53:47,849 [INFO] root (main.py:51 - setup_bot): 已載入模組: admin.py
+2026-05-11 02:53:49,277 [INFO] root (main.py:51 - setup_bot): 已載入模組: ai_chat.py
+2026-05-11 02:53:49,279 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_reply.py
+2026-05-11 02:53:49,280 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_voice.py
+2026-05-11 02:53:49,285 [INFO] root (main.py:51 - setup_bot): 已載入模組: broadcast.py
+2026-05-11 02:53:49,286 [INFO] root (main.py:51 - setup_bot): 已載入模組: bug_report.py
+2026-05-11 02:53:49,287 [INFO] root (main.py:51 - setup_bot): 已載入模組: economy.py
+2026-05-11 02:53:49,288 [INFO] root (main.py:51 - setup_bot): 已載入模組: error_handler.py
+2026-05-11 02:53:49,290 [INFO] root (main.py:51 - setup_bot): 已載入模組: finance.py
+2026-05-11 02:53:49,291 [INFO] root (main.py:51 - setup_bot): 已載入模組: food.py
+2026-05-11 02:53:49,292 [INFO] root (main.py:51 - setup_bot): 已載入模組: fun.py
+2026-05-11 02:53:49,306 [INFO] root (main.py:51 - setup_bot): 已載入模組: gamble.py
+2026-05-11 02:53:49,307 [INFO] root (main.py:51 - setup_bot): 已載入模組: game_panel.py
+2026-05-11 02:53:49,308 [INFO] root (main.py:51 - setup_bot): 已載入模組: help.py
+2026-05-11 02:53:49,315 [INFO] root (main.py:51 - setup_bot): 已載入模組: image.py
+2026-05-11 02:53:49,316 [INFO] root (main.py:51 - setup_bot): 已載入模組: info.py
+2026-05-11 02:53:49,318 [INFO] root (main.py:51 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-11 02:53:49,319 [INFO] root (main.py:51 - setup_bot): 已載入模組: leveling.py
+2026-05-11 02:53:49,320 [INFO] root (main.py:51 - setup_bot): 已載入模組: link_fixer.py
+2026-05-11 02:53:49,321 [INFO] root (main.py:51 - setup_bot): 已載入模組: logger.py
+2026-05-11 02:53:49,432 [INFO] root (main.py:51 - setup_bot): 已載入模組: music.py
+2026-05-11 02:53:49,433 [INFO] root (main.py:51 - setup_bot): 已載入模組: profile.py
+2026-05-11 02:53:49,434 [INFO] root (main.py:51 - setup_bot): 已載入模組: weather.py
+2026-05-11 02:53:50,248 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: 833fd99525ff8e7fba2d6aee4b4373db).
+2026-05-11 02:53:52,253 [INFO] root (main.py:67 - on_ready): 機器人已登入為 那個#1293
+2026-05-11 02:53:52,253 [INFO] root (main.py:68 - on_ready): 目前服務於 2 個伺服器
+2026-05-11 02:53:57,124 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:53:58,127 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync
+2026-05-11 02:54:05,786 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: betdice | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:54:06,193 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: betdice
+2026-05-11 02:54:55,672 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: coinflip | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:54:59,356 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: coinflip
+2026-05-11 02:59:14,281 [ERROR] asyncio (base_events.py:1875 - default_exception_handler): Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x000001CEF6EA1E80>
+2026-05-11 02:59:15,374 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-11 02:59:16,320 [INFO] root (main.py:51 - setup_bot): 已載入模組: admin.py
+2026-05-11 02:59:17,691 [INFO] root (main.py:51 - setup_bot): 已載入模組: ai_chat.py
+2026-05-11 02:59:17,693 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_reply.py
+2026-05-11 02:59:17,694 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_voice.py
+2026-05-11 02:59:17,700 [INFO] root (main.py:51 - setup_bot): 已載入模組: broadcast.py
+2026-05-11 02:59:17,701 [INFO] root (main.py:51 - setup_bot): 已載入模組: bug_report.py
+2026-05-11 02:59:17,702 [INFO] root (main.py:51 - setup_bot): 已載入模組: economy.py
+2026-05-11 02:59:17,703 [INFO] root (main.py:51 - setup_bot): 已載入模組: error_handler.py
+2026-05-11 02:59:17,705 [INFO] root (main.py:51 - setup_bot): 已載入模組: finance.py
+2026-05-11 02:59:17,707 [INFO] root (main.py:51 - setup_bot): 已載入模組: food.py
+2026-05-11 02:59:17,708 [INFO] root (main.py:51 - setup_bot): 已載入模組: fun.py
+2026-05-11 02:59:17,724 [INFO] root (main.py:51 - setup_bot): 已載入模組: gamble.py
+2026-05-11 02:59:17,726 [INFO] root (main.py:51 - setup_bot): 已載入模組: game_panel.py
+2026-05-11 02:59:17,727 [INFO] root (main.py:51 - setup_bot): 已載入模組: help.py
+2026-05-11 02:59:17,733 [INFO] root (main.py:51 - setup_bot): 已載入模組: image.py
+2026-05-11 02:59:17,734 [INFO] root (main.py:51 - setup_bot): 已載入模組: info.py
+2026-05-11 02:59:17,735 [INFO] root (main.py:51 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-11 02:59:17,737 [INFO] root (main.py:51 - setup_bot): 已載入模組: leveling.py
+2026-05-11 02:59:17,738 [INFO] root (main.py:51 - setup_bot): 已載入模組: link_fixer.py
+2026-05-11 02:59:17,739 [INFO] root (main.py:51 - setup_bot): 已載入模組: logger.py
+2026-05-11 02:59:17,856 [INFO] root (main.py:51 - setup_bot): 已載入模組: music.py
+2026-05-11 02:59:17,857 [INFO] root (main.py:51 - setup_bot): 已載入模組: profile.py
+2026-05-11 02:59:17,858 [INFO] root (main.py:51 - setup_bot): 已載入模組: weather.py
+2026-05-11 02:59:18,723 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: 5ac68f7434c76bb72abb74b6479f9181).
+2026-05-11 02:59:20,739 [INFO] root (main.py:67 - on_ready): 機器人已登入為 那個#1293
+2026-05-11 02:59:20,740 [INFO] root (main.py:68 - on_ready): 目前服務於 2 個伺服器
+2026-05-11 02:59:22,671 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:59:23,934 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync
+2026-05-11 02:59:28,173 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:59:29,305 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync
+2026-05-11 02:59:39,767 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: gambleboard | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:59:39,767 [ERROR] root (error_handler.py:48 - on_command_error): Ignoring exception in command gambleboard:
+Traceback (most recent call last):
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\commands.py", line 858, in _do_call
+    return await self._callback(self.binding, interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\DISCORD BOT\cogs\gamble.py", line 505, in gambleboard
+    async with self.bot.db.db.execute('SELECT user_id, net_profit FROM gamble_stats ORDER BY net_profit DESC LIMIT 10') as cursor:
+               ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\context.py", line 41, in __aenter__
+    self._obj = await self._coro
+                ^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 223, in execute
+    cursor = await self._execute(self._conn.execute, sql, parameters)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 160, in _execute
+    return await future
+           ^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 63, in _connection_worker_thread
+    result = function()
+sqlite3.OperationalError: no such table: gamble_stats
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\ext\commands\hybrid.py", line 463, in _invoke_with_namespace
+    value = await self._do_call(ctx, ctx.kwargs)  # type: ignore
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'gambleboard' raised an exception: OperationalError: no such table: gamble_stats
+2026-05-11 02:59:53,587 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: blackjack | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 02:59:54,018 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: blackjack
+2026-05-11 03:00:12,187 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: blackjack | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:00:12,575 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: blackjack
+2026-05-11 03:00:26,841 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: gambleboard | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:00:26,841 [ERROR] root (error_handler.py:48 - on_command_error): Ignoring exception in command gambleboard:
+Traceback (most recent call last):
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\commands.py", line 858, in _do_call
+    return await self._callback(self.binding, interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\DISCORD BOT\cogs\gamble.py", line 505, in gambleboard
+    async with self.bot.db.db.execute('SELECT user_id, net_profit FROM gamble_stats ORDER BY net_profit DESC LIMIT 10') as cursor:
+               ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\context.py", line 41, in __aenter__
+    self._obj = await self._coro
+                ^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 223, in execute
+    cursor = await self._execute(self._conn.execute, sql, parameters)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 160, in _execute
+    return await future
+           ^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 63, in _connection_worker_thread
+    result = function()
+sqlite3.OperationalError: no such table: gamble_stats
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\ext\commands\hybrid.py", line 463, in _invoke_with_namespace
+    value = await self._do_call(ctx, ctx.kwargs)  # type: ignore
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'gambleboard' raised an exception: OperationalError: no such table: gamble_stats
+2026-05-11 03:02:42,988 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-11 03:02:43,986 [INFO] root (main.py:51 - setup_bot): 已載入模組: admin.py
+2026-05-11 03:02:45,402 [INFO] root (main.py:51 - setup_bot): 已載入模組: ai_chat.py
+2026-05-11 03:02:45,404 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_reply.py
+2026-05-11 03:02:45,405 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_voice.py
+2026-05-11 03:02:45,410 [INFO] root (main.py:51 - setup_bot): 已載入模組: broadcast.py
+2026-05-11 03:02:45,411 [INFO] root (main.py:51 - setup_bot): 已載入模組: bug_report.py
+2026-05-11 03:02:45,412 [INFO] root (main.py:51 - setup_bot): 已載入模組: economy.py
+2026-05-11 03:02:45,413 [INFO] root (main.py:51 - setup_bot): 已載入模組: error_handler.py
+2026-05-11 03:02:45,416 [INFO] root (main.py:51 - setup_bot): 已載入模組: finance.py
+2026-05-11 03:02:45,417 [INFO] root (main.py:51 - setup_bot): 已載入模組: food.py
+2026-05-11 03:02:45,418 [INFO] root (main.py:51 - setup_bot): 已載入模組: fun.py
+2026-05-11 03:02:45,433 [INFO] root (main.py:51 - setup_bot): 已載入模組: gamble.py
+2026-05-11 03:02:45,434 [INFO] root (main.py:51 - setup_bot): 已載入模組: game_panel.py
+2026-05-11 03:02:45,435 [INFO] root (main.py:51 - setup_bot): 已載入模組: help.py
+2026-05-11 03:02:45,442 [INFO] root (main.py:51 - setup_bot): 已載入模組: image.py
+2026-05-11 03:02:45,443 [INFO] root (main.py:51 - setup_bot): 已載入模組: info.py
+2026-05-11 03:02:45,444 [INFO] root (main.py:51 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-11 03:02:45,445 [INFO] root (main.py:51 - setup_bot): 已載入模組: leveling.py
+2026-05-11 03:02:45,446 [INFO] root (main.py:51 - setup_bot): 已載入模組: link_fixer.py
+2026-05-11 03:02:45,447 [INFO] root (main.py:51 - setup_bot): 已載入模組: logger.py
+2026-05-11 03:02:45,561 [INFO] root (main.py:51 - setup_bot): 已載入模組: music.py
+2026-05-11 03:02:45,562 [INFO] root (main.py:51 - setup_bot): 已載入模組: profile.py
+2026-05-11 03:02:45,563 [INFO] root (main.py:51 - setup_bot): 已載入模組: weather.py
+2026-05-11 03:02:46,379 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: 45b9d762b68ddd3639cb0d11edf448c5).
+2026-05-11 03:02:48,392 [INFO] root (main.py:67 - on_ready): 機器人已登入為 那個#1293
+2026-05-11 03:02:48,393 [INFO] root (main.py:68 - on_ready): 目前服務於 2 個伺服器
+2026-05-11 03:02:53,713 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:02:54,703 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync
+2026-05-11 03:03:02,180 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: gambleboard | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:03:02,181 [ERROR] root (error_handler.py:48 - on_command_error): Ignoring exception in command gambleboard:
+Traceback (most recent call last):
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\commands.py", line 858, in _do_call
+    return await self._callback(self.binding, interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\DISCORD BOT\cogs\gamble.py", line 508, in gambleboard
+    async with self.bot.db.db.execute('SELECT user_id, net_profit FROM gamble_stats ORDER BY net_profit DESC LIMIT 10') as cursor:
+               ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\context.py", line 41, in __aenter__
+    self._obj = await self._coro
+                ^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 223, in execute
+    cursor = await self._execute(self._conn.execute, sql, parameters)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 160, in _execute
+    return await future
+           ^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 63, in _connection_worker_thread
+    result = function()
+sqlite3.OperationalError: no such table: gamble_stats
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\ext\commands\hybrid.py", line 463, in _invoke_with_namespace
+    value = await self._do_call(ctx, ctx.kwargs)  # type: ignore
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'gambleboard' raised an exception: OperationalError: no such table: gamble_stats
+2026-05-11 03:03:21,704 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: coinflip | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:03:25,773 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: coinflip
+2026-05-11 03:03:34,942 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: gambleboard | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:03:34,943 [ERROR] root (error_handler.py:48 - on_command_error): Ignoring exception in command gambleboard:
+Traceback (most recent call last):
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\commands.py", line 858, in _do_call
+    return await self._callback(self.binding, interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\DISCORD BOT\cogs\gamble.py", line 508, in gambleboard
+    async with self.bot.db.db.execute('SELECT user_id, net_profit FROM gamble_stats ORDER BY net_profit DESC LIMIT 10') as cursor:
+               ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\context.py", line 41, in __aenter__
+    self._obj = await self._coro
+                ^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 223, in execute
+    cursor = await self._execute(self._conn.execute, sql, parameters)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 160, in _execute
+    return await future
+           ^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\aiosqlite\core.py", line 63, in _connection_worker_thread
+    result = function()
+sqlite3.OperationalError: no such table: gamble_stats
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\ext\commands\hybrid.py", line 463, in _invoke_with_namespace
+    value = await self._do_call(ctx, ctx.kwargs)  # type: ignore
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'gambleboard' raised an exception: OperationalError: no such table: gamble_stats
+2026-05-11 03:05:20,080 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-11 03:05:20,771 [INFO] root (main.py:51 - setup_bot): 已載入模組: admin.py
+2026-05-11 03:05:22,184 [INFO] root (main.py:51 - setup_bot): 已載入模組: ai_chat.py
+2026-05-11 03:05:22,187 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_reply.py
+2026-05-11 03:05:22,189 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_voice.py
+2026-05-11 03:05:22,195 [INFO] root (main.py:51 - setup_bot): 已載入模組: broadcast.py
+2026-05-11 03:05:22,196 [INFO] root (main.py:51 - setup_bot): 已載入模組: bug_report.py
+2026-05-11 03:05:22,197 [INFO] root (main.py:51 - setup_bot): 已載入模組: economy.py
+2026-05-11 03:05:22,197 [INFO] root (main.py:51 - setup_bot): 已載入模組: error_handler.py
+2026-05-11 03:05:22,199 [INFO] root (main.py:51 - setup_bot): 已載入模組: finance.py
+2026-05-11 03:05:22,200 [INFO] root (main.py:51 - setup_bot): 已載入模組: food.py
+2026-05-11 03:05:22,201 [INFO] root (main.py:51 - setup_bot): 已載入模組: fun.py
+2026-05-11 03:05:22,218 [INFO] root (main.py:51 - setup_bot): 已載入模組: gamble.py
+2026-05-11 03:05:22,220 [INFO] root (main.py:51 - setup_bot): 已載入模組: game_panel.py
+2026-05-11 03:05:22,221 [INFO] root (main.py:51 - setup_bot): 已載入模組: help.py
+2026-05-11 03:05:22,228 [INFO] root (main.py:51 - setup_bot): 已載入模組: image.py
+2026-05-11 03:05:22,229 [INFO] root (main.py:51 - setup_bot): 已載入模組: info.py
+2026-05-11 03:05:22,230 [INFO] root (main.py:51 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-11 03:05:22,232 [INFO] root (main.py:51 - setup_bot): 已載入模組: leveling.py
+2026-05-11 03:05:22,233 [INFO] root (main.py:51 - setup_bot): 已載入模組: link_fixer.py
+2026-05-11 03:05:22,234 [INFO] root (main.py:51 - setup_bot): 已載入模組: logger.py
+2026-05-11 03:05:22,347 [INFO] root (main.py:51 - setup_bot): 已載入模組: music.py
+2026-05-11 03:05:22,348 [INFO] root (main.py:51 - setup_bot): 已載入模組: profile.py
+2026-05-11 03:05:22,349 [INFO] root (main.py:51 - setup_bot): 已載入模組: weather.py
+2026-05-11 03:05:23,199 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: 8a6fa19ee3a68ece1a38bbb3c51c0332).
+2026-05-11 03:05:25,216 [INFO] root (main.py:67 - on_ready): 機器人已登入為 那個#1293
+2026-05-11 03:05:25,216 [INFO] root (main.py:68 - on_ready): 目前服務於 2 個伺服器
+2026-05-11 03:05:27,993 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:05:29,295 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync
+2026-05-11 03:05:31,528 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: gambleboard | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:05:31,862 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: gambleboard
+2026-05-11 03:05:46,883 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: eat | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:05:47,223 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: eat
+2026-05-11 03:06:00,999 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: drink | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:06:00,999 [ERROR] root (error_handler.py:48 - on_command_error): Ignoring exception in command drink:
+Traceback (most recent call last):
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\commands.py", line 858, in _do_call
+    return await self._callback(self.binding, interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\DISCORD BOT\cogs\food.py", line 117, in drink
+    drink = self.get_random_drink()
+            ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Food' object has no attribute 'get_random_drink'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\ext\commands\hybrid.py", line 463, in _invoke_with_namespace
+    value = await self._do_call(ctx, ctx.kwargs)  # type: ignore
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'drink' raised an exception: AttributeError: 'Food' object has no attribute 'get_random_drink'
+2026-05-11 03:06:09,354 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: drink | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:06:09,354 [ERROR] root (error_handler.py:48 - on_command_error): Ignoring exception in command drink:
+Traceback (most recent call last):
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\commands.py", line 858, in _do_call
+    return await self._callback(self.binding, interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\DISCORD BOT\cogs\food.py", line 117, in drink
+    drink = self.get_random_drink()
+            ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Food' object has no attribute 'get_random_drink'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\ext\commands\hybrid.py", line 463, in _invoke_with_namespace
+    value = await self._do_call(ctx, ctx.kwargs)  # type: ignore
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\linx2\AppData\Roaming\Python\Python314\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'drink' raised an exception: AttributeError: 'Food' object has no attribute 'get_random_drink'
+2026-05-11 03:09:57,599 [ERROR] asyncio (base_events.py:1875 - default_exception_handler): Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x000001960A422E40>
+2026-05-11 03:09:58,896 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-11 03:09:59,654 [INFO] root (main.py:51 - setup_bot): 已載入模組: admin.py
+2026-05-11 03:10:01,047 [INFO] root (main.py:51 - setup_bot): 已載入模組: ai_chat.py
+2026-05-11 03:10:01,050 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_reply.py
+2026-05-11 03:10:01,051 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_voice.py
+2026-05-11 03:10:01,056 [INFO] root (main.py:51 - setup_bot): 已載入模組: broadcast.py
+2026-05-11 03:10:01,057 [INFO] root (main.py:51 - setup_bot): 已載入模組: bug_report.py
+2026-05-11 03:10:01,058 [INFO] root (main.py:51 - setup_bot): 已載入模組: economy.py
+2026-05-11 03:10:01,059 [INFO] root (main.py:51 - setup_bot): 已載入模組: error_handler.py
+2026-05-11 03:10:01,064 [INFO] root (main.py:51 - setup_bot): 已載入模組: finance.py
+2026-05-11 03:10:01,077 [INFO] root (main.py:51 - setup_bot): 已載入模組: food.py
+2026-05-11 03:10:01,078 [INFO] root (main.py:51 - setup_bot): 已載入模組: fun.py
+2026-05-11 03:10:01,081 [INFO] root (main.py:51 - setup_bot): 已載入模組: gamble.py
+2026-05-11 03:10:01,083 [INFO] root (main.py:51 - setup_bot): 已載入模組: game_panel.py
+2026-05-11 03:10:01,085 [INFO] root (main.py:51 - setup_bot): 已載入模組: help.py
+2026-05-11 03:10:01,093 [INFO] root (main.py:51 - setup_bot): 已載入模組: image.py
+2026-05-11 03:10:01,095 [INFO] root (main.py:51 - setup_bot): 已載入模組: info.py
+2026-05-11 03:10:01,097 [INFO] root (main.py:51 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-11 03:10:01,100 [INFO] root (main.py:51 - setup_bot): 已載入模組: leveling.py
+2026-05-11 03:10:01,101 [INFO] root (main.py:51 - setup_bot): 已載入模組: link_fixer.py
+2026-05-11 03:10:01,103 [INFO] root (main.py:51 - setup_bot): 已載入模組: logger.py
+2026-05-11 03:10:01,208 [INFO] root (main.py:51 - setup_bot): 已載入模組: music.py
+2026-05-11 03:10:01,209 [INFO] root (main.py:51 - setup_bot): 已載入模組: profile.py
+2026-05-11 03:10:01,209 [INFO] root (main.py:51 - setup_bot): 已載入模組: weather.py
+2026-05-11 03:10:01,877 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: 58cf9fc432bf64ce002a6deab6cda7a4).
+2026-05-11 03:10:03,886 [INFO] root (main.py:67 - on_ready): 機器人已登入為 那個#1293
+2026-05-11 03:10:03,886 [INFO] root (main.py:68 - on_ready): 目前服務於 2 個伺服器
+2026-05-11 03:10:06,577 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:10:07,510 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: sync
+2026-05-11 03:10:10,952 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: drink | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:10:11,322 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: drink
+2026-05-11 03:10:15,961 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: eat | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:10:16,311 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: eat
+2026-05-11 03:12:08,536 [ERROR] asyncio (base_events.py:1875 - default_exception_handler): Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x00000206A1C41BE0>
+2026-05-11 03:12:09,759 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-11 03:12:10,514 [INFO] root (main.py:51 - setup_bot): 已載入模組: admin.py
+2026-05-11 03:12:11,849 [INFO] root (main.py:51 - setup_bot): 已載入模組: ai_chat.py
+2026-05-11 03:12:11,851 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_reply.py
+2026-05-11 03:12:11,852 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_voice.py
+2026-05-11 03:12:11,858 [INFO] root (main.py:51 - setup_bot): 已載入模組: broadcast.py
+2026-05-11 03:12:11,859 [INFO] root (main.py:51 - setup_bot): 已載入模組: bug_report.py
+2026-05-11 03:12:11,860 [INFO] root (main.py:51 - setup_bot): 已載入模組: economy.py
+2026-05-11 03:12:11,860 [INFO] root (main.py:51 - setup_bot): 已載入模組: error_handler.py
+2026-05-11 03:12:11,862 [INFO] root (main.py:51 - setup_bot): 已載入模組: finance.py
+2026-05-11 03:12:11,872 [INFO] root (main.py:51 - setup_bot): 已載入模組: food.py
+2026-05-11 03:12:11,873 [INFO] root (main.py:51 - setup_bot): 已載入模組: fun.py
+2026-05-11 03:12:11,875 [INFO] root (main.py:51 - setup_bot): 已載入模組: gamble.py
+2026-05-11 03:12:11,876 [INFO] root (main.py:51 - setup_bot): 已載入模組: game_panel.py
+2026-05-11 03:12:11,877 [INFO] root (main.py:51 - setup_bot): 已載入模組: help.py
+2026-05-11 03:12:11,884 [INFO] root (main.py:51 - setup_bot): 已載入模組: image.py
+2026-05-11 03:12:11,885 [INFO] root (main.py:51 - setup_bot): 已載入模組: info.py
+2026-05-11 03:12:11,886 [INFO] root (main.py:51 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-11 03:12:11,887 [INFO] root (main.py:51 - setup_bot): 已載入模組: leveling.py
+2026-05-11 03:12:11,888 [INFO] root (main.py:51 - setup_bot): 已載入模組: link_fixer.py
+2026-05-11 03:12:11,889 [INFO] root (main.py:51 - setup_bot): 已載入模組: logger.py
+2026-05-11 03:12:11,994 [INFO] root (main.py:51 - setup_bot): 已載入模組: music.py
+2026-05-11 03:12:11,995 [INFO] root (main.py:51 - setup_bot): 已載入模組: profile.py
+2026-05-11 03:12:11,995 [INFO] root (main.py:51 - setup_bot): 已載入模組: weather.py
+2026-05-11 03:12:12,785 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: f9ffde1020b67fdd68c74319602d73d6).
+2026-05-11 03:12:14,800 [INFO] root (main.py:67 - on_ready): 機器人已登入為 那個#1293
+2026-05-11 03:12:14,800 [INFO] root (main.py:68 - on_ready): 目前服務於 2 個伺服器
+2026-05-11 03:12:20,296 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: drink | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:12:20,637 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: drink
+2026-05-11 03:12:25,148 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: eat | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:12:25,655 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: eat
+2026-05-11 03:13:46,516 [ERROR] asyncio (base_events.py:1875 - default_exception_handler): Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x0000018A658B1BE0>
+2026-05-11 03:13:48,412 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-11 03:13:49,210 [INFO] root (main.py:51 - setup_bot): 已載入模組: admin.py
+2026-05-11 03:13:50,596 [INFO] root (main.py:51 - setup_bot): 已載入模組: ai_chat.py
+2026-05-11 03:13:50,599 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_reply.py
+2026-05-11 03:13:50,600 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_voice.py
+2026-05-11 03:13:50,605 [INFO] root (main.py:51 - setup_bot): 已載入模組: broadcast.py
+2026-05-11 03:13:50,606 [INFO] root (main.py:51 - setup_bot): 已載入模組: bug_report.py
+2026-05-11 03:13:50,607 [INFO] root (main.py:51 - setup_bot): 已載入模組: economy.py
+2026-05-11 03:13:50,608 [INFO] root (main.py:51 - setup_bot): 已載入模組: error_handler.py
+2026-05-11 03:13:50,610 [INFO] root (main.py:51 - setup_bot): 已載入模組: finance.py
+2026-05-11 03:13:50,620 [INFO] root (main.py:51 - setup_bot): 已載入模組: food.py
+2026-05-11 03:13:50,621 [INFO] root (main.py:51 - setup_bot): 已載入模組: fun.py
+2026-05-11 03:13:50,623 [INFO] root (main.py:51 - setup_bot): 已載入模組: gamble.py
+2026-05-11 03:13:50,624 [INFO] root (main.py:51 - setup_bot): 已載入模組: game_panel.py
+2026-05-11 03:13:50,625 [INFO] root (main.py:51 - setup_bot): 已載入模組: help.py
+2026-05-11 03:13:50,631 [INFO] root (main.py:51 - setup_bot): 已載入模組: image.py
+2026-05-11 03:13:50,632 [INFO] root (main.py:51 - setup_bot): 已載入模組: info.py
+2026-05-11 03:13:50,633 [INFO] root (main.py:51 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-11 03:13:50,635 [INFO] root (main.py:51 - setup_bot): 已載入模組: leveling.py
+2026-05-11 03:13:50,635 [INFO] root (main.py:51 - setup_bot): 已載入模組: link_fixer.py
+2026-05-11 03:13:50,636 [INFO] root (main.py:51 - setup_bot): 已載入模組: logger.py
+2026-05-11 03:13:50,746 [INFO] root (main.py:51 - setup_bot): 已載入模組: music.py
+2026-05-11 03:13:50,747 [INFO] root (main.py:51 - setup_bot): 已載入模組: profile.py
+2026-05-11 03:13:50,748 [INFO] root (main.py:51 - setup_bot): 已載入模組: weather.py
+2026-05-11 03:13:51,463 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: 494b5ea74d363131f0dfc6cd9165429d).
+2026-05-11 03:13:53,495 [INFO] root (main.py:67 - on_ready): 機器人已登入為 那個#1293
+2026-05-11 03:13:53,496 [INFO] root (main.py:68 - on_ready): 目前服務於 2 個伺服器
+2026-05-11 03:13:55,706 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: drink | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:13:56,081 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: drink
+2026-05-11 03:16:05,008 [ERROR] asyncio (base_events.py:1875 - default_exception_handler): Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x000002929C6D1BE0>
+2026-05-11 03:16:06,190 [INFO] discord.client (client.py:670 - login): logging in using static token
+2026-05-11 03:16:07,059 [INFO] root (main.py:51 - setup_bot): 已載入模組: admin.py
+2026-05-11 03:16:08,436 [INFO] root (main.py:51 - setup_bot): 已載入模組: ai_chat.py
+2026-05-11 03:16:08,438 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_reply.py
+2026-05-11 03:16:08,439 [INFO] root (main.py:51 - setup_bot): 已載入模組: auto_voice.py
+2026-05-11 03:16:08,445 [INFO] root (main.py:51 - setup_bot): 已載入模組: broadcast.py
+2026-05-11 03:16:08,446 [INFO] root (main.py:51 - setup_bot): 已載入模組: bug_report.py
+2026-05-11 03:16:08,448 [INFO] root (main.py:51 - setup_bot): 已載入模組: economy.py
+2026-05-11 03:16:08,448 [INFO] root (main.py:51 - setup_bot): 已載入模組: error_handler.py
+2026-05-11 03:16:08,460 [ERROR] root (main.py:53 - setup_bot): 載入 finance.py 失敗: Extension 'cogs.finance' raised an error: NameError: name 'tz_tw' is not defined
+2026-05-11 03:16:08,467 [INFO] root (main.py:51 - setup_bot): 已載入模組: food.py
+2026-05-11 03:16:08,468 [INFO] root (main.py:51 - setup_bot): 已載入模組: fun.py
+2026-05-11 03:16:08,470 [INFO] root (main.py:51 - setup_bot): 已載入模組: gamble.py
+2026-05-11 03:16:08,471 [INFO] root (main.py:51 - setup_bot): 已載入模組: game_panel.py
+2026-05-11 03:16:08,472 [INFO] root (main.py:51 - setup_bot): 已載入模組: help.py
+2026-05-11 03:16:08,479 [INFO] root (main.py:51 - setup_bot): 已載入模組: image.py
+2026-05-11 03:16:08,480 [INFO] root (main.py:51 - setup_bot): 已載入模組: info.py
+2026-05-11 03:16:08,481 [INFO] root (main.py:51 - setup_bot): 已載入模組: jerk_counter.py
+2026-05-11 03:16:08,483 [INFO] root (main.py:51 - setup_bot): 已載入模組: leveling.py
+2026-05-11 03:16:08,484 [INFO] root (main.py:51 - setup_bot): 已載入模組: link_fixer.py
+2026-05-11 03:16:08,485 [INFO] root (main.py:51 - setup_bot): 已載入模組: logger.py
+2026-05-11 03:16:08,596 [INFO] root (main.py:51 - setup_bot): 已載入模組: music.py
+2026-05-11 03:16:08,597 [INFO] root (main.py:51 - setup_bot): 已載入模組: profile.py
+2026-05-11 03:16:08,597 [INFO] root (main.py:51 - setup_bot): 已載入模組: weather.py
+2026-05-11 03:16:09,389 [INFO] discord.gateway (gateway.py:579 - received_message): Shard ID None has connected to Gateway (Session ID: d620d289fb1cf16365668ac638b353ba).
+2026-05-11 03:16:11,408 [INFO] root (main.py:67 - on_ready): 機器人已登入為 那個#1293
+2026-05-11 03:16:11,408 [INFO] root (main.py:68 - on_ready): 目前服務於 2 個伺服器
+2026-05-11 03:19:05,980 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: jail | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:19:07,807 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: jail
+2026-05-11 03:20:09,020 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: profile | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:20:09,547 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: profile
+2026-05-11 03:20:16,094 [INFO] root (main.py:73 - on_command): [指令呼叫] 使用者: 62gcwo (ID: 473084622947745795) | 指令: gambleboard | 頻道: #一般 | 伺服器: 機器人測試服
+2026-05-11 03:20:16,466 [INFO] root (main.py:77 - on_command_completion): [指令完成] 使用者: 62gcwo (ID: 473084622947745795) | 指令: gambleboard
