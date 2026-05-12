@@ -52,7 +52,6 @@ class Finance(commands.Cog):
             await self.bot.db.db.commit()
 
     # 每小時整點自動更新股價的背景任務
-    tz_tw = datetime.timezone(datetime.timedelta(hours=8))
     hourly_times = [datetime.time(hour=h, minute=0, second=0, tzinfo=tz_tw) for h in range(24)]
     
     @tasks.loop(time=hourly_times)
