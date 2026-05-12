@@ -10,6 +10,8 @@ class Finance(commands.Cog):
 
     async def cog_load(self):
         await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS market_news_settings (guild_id INTEGER PRIMARY KEY, channel_id INTEGER)''')
+        await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS virtual_stocks (symbol TEXT PRIMARY KEY, name TEXT, prev_price INTEGER, price INTEGER, next_price INTEGER)''')
+        await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS investments (user_id INTEGER, symbol TEXT, amount INTEGER, avg_price REAL, PRIMARY KEY (user_id, symbol))''')
         await self.bot.db.db.commit()
         await self.init_virtual_stocks()
         self.market_update_loop.start()
