@@ -1,2 +1,4 @@
 .env
 bot_database.db
+*.key
+*.pem

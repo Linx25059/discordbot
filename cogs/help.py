@@ -10,14 +10,12 @@ class Help(commands.Cog):
         await self.bot.db.db.commit()
 
         # --- 在這裡設定最新版本的更新內容 ---
-        self.current_version = "0.5.3"
+        self.current_version = "1.0.0"
         self.changelog_title = f"✨ 機器人更新日誌 (v{self.current_version})"
         self.changelog_text = (
-            "**🛠️ v0.5.3 更新內容**\n"
-            "• 🃏 新增多人連線「21點」牌桌，完美還原真實賭場體驗！\n"
-            "• 🍔 史詩級擴充吃喝推薦清單，加入早午晚餐時段分類與百款人氣手搖飲！\n\n"
-            "**🛠️ v0.5.2 更新內容**\n"
-            "• 🧹 清理幫助選單，移除了已經不存在的舊功能顯示，讓指令選單更準確乾淨。\n\n"
+            "**🚀 v1.0.0 正式版發布！**\n"
+            "• 經過多次的測試與優化，機器人迎來了第一個正式版本！\n"
+            "• 全面性的穩定性提升與指令優化，提供更流暢的使用體驗。\n"
         )
 
         # 啟動時檢查是否需要推播更新
@@ -38,12 +36,13 @@ class Help(commands.Cog):
                 "Finance": "📈 虛擬股市"
             },
             "🏆 等級系統": {
-                "Leveling": "🏆 活躍排行榜"
+                "Leveling": "🏆 活躍排行榜",
+                "Profile": "🪪 個人檔案"
             },
             "🛠️ 實用工具": {
                 "AIChat": "🤖 AI 聊天助理",
                 "Weather": "🌤️ 天氣查詢",
-                "AutoReply": "💬 自動回覆",
+                "Food": "🍔 美食與飲品推薦",
                 "Info": "ℹ️ 關於我"
             }
         }
