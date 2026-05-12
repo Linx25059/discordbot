@@ -171,8 +171,10 @@ class Help(commands.Cog):
         
         await ctx.send(f"✅ 設定成功！未來最新的更新資訊都會發布在 {ctx.channel.mention}。", embed=embed)
         
+        # 核心修復：設定頻道時，故意將資料庫中的版本號設為一個舊的或不存在的值 (例如 "0.0.0")
+        # 這樣當機器人下次帶著新版本號重啟時，版本比對 (last_version != self.current_version) 才會是 True，進而觸發更新推播。
         await self.bot.db.db.execute('INSERT OR REPLACE INTO update_settings (guild_id, channel_id, last_version) VALUES (?, ?, ?)', 
-                       (ctx.guild.id, ctx.channel.id, self.current_version))
+                       (ctx.guild.id, ctx.channel.id, "0.0.0"))
         await self.bot.db.db.commit()
 
     @commands.hybrid_command(name="adminhelp", aliases=["allcmds", "ah"], help="【管理員專用】查看所有指令 (包含隱藏及管理權限指令)")
