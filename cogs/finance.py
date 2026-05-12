@@ -146,7 +146,7 @@ class Finance(commands.Cog):
             else:
                 trend = "➖"
                 
-            embed.add_field(name=f"🏷️ {name} ({sym})", value=f"現價: **{price}** 金幣\n漲跌: {trend} {abs(change)} ({change_percent:+.1f}%)", inline=True)
+        embed.add_field(name=f"🏷️ {name} ({sym})", value=f"現價: **{price:,}** 金幣\n漲跌: {trend} {abs(change):,} ({change_percent:+.1f}%)", inline=True)
             
         embed.set_footer(text="使用 /buy_stock 買入、/sell_stock 賣出，或是用 /insider 購買內線消息！")
         await ctx.send(embed=embed)
@@ -299,6 +299,29 @@ class Finance(commands.Cog):
         total_trend = "🔺" if total_pnl_pct > 0 else ("🔻" if total_pnl_pct < 0 else "➖")
         embed.description = f"**總投入成本**: `{total_investment:,.0f}` 金幣\n**目前總市值**: `{total_value:,.0f}` 金幣\n**總未實現損益**: {total_trend} **{total_pnl_pct:+.1f}%**"
 
+        await ctx.send(embed=embed)
+
+    @commands.hybrid_command(name="stockboard", aliases=["股神榜", "股票排行"], help="查看虛擬股市的股神排行榜 (依持股總市值)")
+    async def stockboard(self, ctx):
+        # 計算每個人的股票總市值
+        async with self.bot.db.db.execute('''SELECT i.user_id, SUM(i.amount * v.price) as total_value
+                          FROM investments i 
+                          JOIN virtual_stocks v ON i.symbol = v.symbol 
+                          GROUP BY i.user_id 
+                          ORDER BY total_value DESC LIMIT 10''') as cursor:
+            results = await cursor.fetchall()
+            
+        if not results:
+            return await ctx.send(embed=discord.Embed(description="🤔 目前還沒有任何人購買虛擬股票喔！", color=discord.Color.light_grey()))
+            
+        embed = discord.Embed(title="🏆 虛擬股神排行榜", description="來看看誰是股市裡的大戶：", color=discord.Color.gold())
+        
+        for i, (user_id, total_value) in enumerate(results):
+            user = self.bot.get_user(user_id)
+            name = user.display_name if user else f"未知股神 ({user_id})"
+            medal = "🥇" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else "🏅"
+            embed.add_field(name=f"{medal} 第 {i+1} 名：{name}", value=f"股票總市值: **{int(total_value):,}** 金幣", inline=False)
+            
         await ctx.send(embed=embed)
 
 async def setup(bot):
