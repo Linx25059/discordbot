@@ -4,6 +4,7 @@ from discord.ext import commands, tasks
 import random
 import datetime
 from datetime import timezone, timedelta
+import zoneinfo
 
 class Finance(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -50,7 +51,7 @@ class Finance(commands.Cog):
             await self.bot.db.db.commit()
 
     # 每小時整點自動更新股價的背景任務
-    hourly_times = [datetime.time(hour=h, minute=0, second=0, tzinfo=datetime.timezone(datetime.timedelta(hours=8))) for h in range(24)]
+    hourly_times = [datetime.time(hour=h, minute=0, second=0, tzinfo=zoneinfo.ZoneInfo("Asia/Taipei")) for h in range(24)]
     
     @tasks.loop(time=hourly_times)
     async def market_update_loop(self):
