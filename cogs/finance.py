@@ -3,6 +3,9 @@ from discord import app_commands
 from discord.ext import commands, tasks
 import random
 import datetime
+from datetime import timezone, timedelta
+
+tz_tw = timezone(timedelta(hours=8))
 
 class Finance(commands.Cog):
     def __init__(self, bot: commands.Bot):

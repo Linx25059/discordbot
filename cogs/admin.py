@@ -32,5 +32,19 @@ class Admin(commands.Cog):
             
             await channel.send(f"歡迎 {member.mention}！", embed=embed)
 
+    # 🛡️ 功能 3：熱重載模組 (開發除錯必備)
+    @commands.command(name="reload", help="【管理員】重新載入特定模組 (例如: !reload finance)")
+    @commands.has_permissions(administrator=True)
+    async def reload_cog(self, ctx, cog_name: str):
+        try:
+            # 如果模組一開始完全沒載入成功，要使用 load_extension；如果是要更新，則用 reload_extension
+            if f"cogs.{cog_name}" in self.bot.extensions:
+                await self.bot.reload_extension(f"cogs.{cog_name}")
+            else:
+                await self.bot.load_extension(f"cogs.{cog_name}")
+            await ctx.send(f"✅ 成功載入模組：`cogs/{cog_name}.py`")
+        except Exception as e:
+            await ctx.send(f"❌ 載入 `{cog_name}` 失敗：\n```py\n{e}\n```")
+
 async def setup(bot):
     await bot.add_cog(Admin(bot))
