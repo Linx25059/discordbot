@@ -110,10 +110,24 @@ class AIChat(commands.Cog):
                             await log_channel.send(log_msg)
                 
             except Exception as e:
-                if "429" in str(e):
-                    await ctx.send(embed=discord.Embed(description="⏳ 稍微等我一下喔，我處理得有點慢！", color=discord.Color.orange()))
+                error_str = str(e)
+                embed = discord.Embed(title="❌ AI 聊天發生錯誤", color=discord.Color.red())
+                
+                if "429" in error_str or "Quota" in error_str or "Rate limit" in error_str:
+                    embed.description = "⏳ **請求太頻繁或 API 配額已耗盡！**\n請稍後再試，或開發者請檢查 Google Cloud 控制台的 API 使用量。"
+                elif "403" in error_str or "API_KEY_INVALID" in error_str:
+                    embed.description = "🔑 **API 金鑰無效或權限不足！**\n開發者請檢查 `.env` 檔案中的 `GEMINI_API_KEY` 是否正確設定。"
+                elif "400" in error_str:
+                    embed.description = "⚠️ **請求無效 (Bad Request)！**\n可能是對話歷史過長（超出 Context 上限）或包含無法處理的特殊格式。\n👉 *建議嘗試使用 `/忘記` 指令清除記憶後再試。*"
+                elif "500" in error_str or "503" in error_str:
+                    embed.description = "🔥 **Google 伺服器端發生錯誤！**\nGemini API 伺服器目前異常或暫時無法服務，請稍候再試。"
+                elif "SAFETY" in error_str or "safety" in error_str.lower():
+                    embed.description = "🛡️ **內容安全過濾器強制攔截！**\n雖然已經調低過濾標準，但 Google 底層依然強制阻擋了此段對話的某些極端字詞。"
                 else:
-                    await ctx.send(embed=discord.Embed(title="❌ AI 發生錯誤：", description=f"```\n{e}\n```", color=discord.Color.red()))
+                    embed.description = "❓ **發生了未知的非預期錯誤！**\n請開發者查看下方的原始錯誤訊息以進行除錯。"
+
+                embed.add_field(name="🛠️ 原始錯誤訊息", value=f"```python\n{error_str[:1000]}\n```", inline=False)
+                await ctx.send(embed=embed)
 
 # 清除記憶的指令 (可選)
     @commands.hybrid_command(name="忘記", help="清除 AI 對你的記憶")
