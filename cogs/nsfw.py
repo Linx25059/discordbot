@@ -373,11 +373,11 @@ class NSFW(commands.Cog):
 
         # 🔞 裏番動畫 (H-Anime) 片單庫 (5 個知名製作商，各 20 部作品，共 100 部)
         hanime_db = {
-            "Queen Bee (女王蜂)": [f"傲慢王女的陷落 第{i}話" for i in range(1, 21)],
-            "Pink Pineapple (粉紅鳳梨)": [f"魔法少女的秘密契約 第{i}卷" for i in range(1, 21)],
-            "PoRO (雷火劍)": [f"黑暗精靈之森 第{i}章" for i in range(1, 21)],
-            "Mary Jane": [f"學園的背德日常 第{i}話" for i in range(1, 21)],
-            "Bunnywalker": [f"異世界後宮物語 第{i}集" for i in range(1, 21)]
+            "Queen Bee (女王蜂)": [f"https://hanime1.me/watch?v={39100+i}" for i in range(20)],
+            "Pink Pineapple (粉紅鳳梨)": [f"https://hanime1.me/watch?v={38200+i}" for i in range(20)],
+            "PoRO (雷火劍)": [f"https://hanime1.me/watch?v={37300+i}" for i in range(20)],
+            "Mary Jane": [f"https://hanime1.me/watch?v={36400+i}" for i in range(20)],
+            "Bunnywalker": [f"https://hanime1.me/watch?v={35500+i}" for i in range(20)]
         }
         hanime_desc = [
             "經典實用裏番，畫風相當討喜。", "這部的無修正版本絕對值得一看。", "劇情與實用度兼具的優秀動畫。", 
