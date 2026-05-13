@@ -142,6 +142,10 @@ class NSFWRerollView(discord.ui.View):
             search_links = get_search_links(av['code'], av['category'])
             embed.add_field(name="🔗 快速搜尋", value=search_links, inline=False)
             
+        # 🖼️ 如果有抓到封面圖，大張地展示出來！
+        if av.get('thumbnail'):
+            embed.set_image(url=av['thumbnail'])
+            
         embed.set_footer(text="💡 趕快點擊連結上車吧！")
         return embed
 
@@ -183,76 +187,168 @@ class NSFW(commands.Cog):
                     async with self.bot.session.get("https://jable.tv/hot/", headers=headers, timeout=5) as resp:
                         if resp.status == 200:
                             html = await resp.text()
-                            # 匹配 Jable 影片標題與網址
-                            pattern = r'<h6 class="title">\s*<a href="(https://jable\.tv/videos/([^/]+)/)">(.*?)</a>'
-                            matches = re.findall(pattern, html)
+                            # 同時抓取 Jable 的直達網址、番號、封面圖與標題
+                            pattern = r'<a href="(https://jable\.tv/videos/([^/]+)/)".*?<img[^>]+(?:data-src|src)="([^"]+)"[^>]*alt="([^"]+)"'
+                            matches = re.findall(pattern, html, re.DOTALL)
                             if matches:
                                 match = random.choice(matches[:30]) # 從榜單前 30 名隨機挑一部
                                 return {
                                     "code": match[1].upper(),
                                     "actress": "🔥 網路熱門",
-                                    "desc": f"**{match[2].strip()}**\n\n*(資料來源：Jable 近期熱門排行榜)*",
+                                    "desc": f"**{match[3].strip()}**\n\n*(資料來源：Jable 近期熱門排行榜)*",
                                     "category": "🌐 網路近期熱門",
-                                    "url": match[0]
+                                    "url": match[0],
+                                    "thumbnail": match[2]
                                 }
                 
                 elif site == "missav":
                     async with self.bot.session.get("https://missav.ws/zh/monthly-hot", headers=headers, timeout=5) as resp:
                         if resp.status == 200:
                             html = await resp.text()
-                            # 匹配 MissAV 影片標題 (在 img 的 alt 中) 與網址
-                            pattern = r'<a href="(https://missav\.ws/(?:[a-z]{2}/)?([a-zA-Z0-9-]+))"[^>]*>.*?<img[^>]+alt="([^"]+)"'
+                            # 抓取 MissAV 網址、番號、封面圖與標題
+                            pattern = r'<a href="(https://missav\.ws/(?:[a-z]{2}/)?([a-zA-Z0-9-]+))"[^>]*>.*?<img[^>]+(?:data-src|src)="([^"]+)"[^>]*alt="([^"]+)"'
                             matches = re.findall(pattern, html, re.DOTALL)
                             if matches:
-                                valid_matches = [m for m in matches if len(m[2]) < 150 and not m[2].startswith("<")]
+                                valid_matches = [m for m in matches if len(m[3]) < 150 and not m[3].startswith("<")]
                                 if valid_matches:
                                     match = random.choice(valid_matches[:30])
                                     return {
                                         "code": match[1].upper(),
                                         "actress": "🔥 網路熱門",
-                                        "desc": f"**{match[2].strip()}**\n\n*(資料來源：MissAV 本月熱門排行榜)*",
+                                        "desc": f"**{match[3].strip()}**\n\n*(資料來源：MissAV 本月熱門排行榜)*",
                                         "category": "🌐 網路近期熱門",
-                                        "url": match[0]
+                                        "url": match[0],
+                                        "thumbnail": match[2]
                                     }
                 
                 elif site == "hanime1":
                     async with self.bot.session.get("https://hanime1.me/", headers=headers, timeout=5) as resp:
                         if resp.status == 200:
                             html = await resp.text()
-                            # 匹配 Hanime1 熱門趨勢
-                            pattern = r'<a href="(https://hanime1\.me/watch\?v=([^"]+))"[^>]*>.*?alt="([^"]+)"'
+                            # 抓取 Hanime1 網址、影片ID、封面圖與標題
+                            pattern = r'<a href="(https://hanime1\.me/watch\?v=([^"]+))"[^>]*>.*?<img[^>]+(?:src|data-src)="([^"]+)"[^>]*alt="([^"]+)"'
                             matches = re.findall(pattern, html, re.DOTALL)
                             if matches:
-                                valid_matches = [m for m in matches if "alt" not in m[2]]
+                                valid_matches = [m for m in matches if "alt" not in m[3]]
                                 if valid_matches:
                                     match = random.choice(valid_matches[:30])
                                     return {
-                                        "code": match[2].strip(),
+                                        "code": match[3].strip(),
                                         "actress": "🔥 網路熱門",
                                         "desc": "*(資料來源：Hanime1 首頁趨勢)*",
                                         "category": "🌐 網路近期熱門",
-                                        "url": match[0]
+                                        "url": match[0],
+                                        "thumbnail": match[2]
                                     }
 
                 elif site == "xvideos":
                     async with self.bot.session.get("https://www.xvideos.com/", headers=headers, timeout=5) as resp:
                         if resp.status == 200:
                             html = await resp.text()
-                            pattern = r'<a href="(/video\.[0-9a-z_]+/[^"]+)" title="([^"]+)"'
+                            pattern = r'<a href="(/video\.[0-9a-z_]+/[^"]+)".*?<img[^>]+(?:data-src|src)="([^"]+)".*?title="([^"]+)"'
                             matches = re.findall(pattern, html)
                             if matches:
                                 match = random.choice(matches[:30])
                                 return {
                                     "code": "XVIDEOS",
                                     "actress": "🔥 網路熱門",
-                                    "desc": f"**{match[1].strip()}**\n\n*(資料來源：Xvideos 熱門排行)*",
+                                    "desc": f"**{match[2].strip()}**\n\n*(資料來源：Xvideos 熱門排行)*",
                                     "category": "🌐 網路近期熱門",
-                                    "url": f"https://www.xvideos.com{match[0]}"
+                                    "url": f"https://www.xvideos.com{match[0]}",
+                                    "thumbnail": match[1]
                                 }
             except Exception:
                 continue # 爬蟲發生錯誤時不干擾機器人，安靜換下一個網站
                 
         return None
+
+    async def find_direct_url_from_code(self, code: str, category: str = "日本精選"):
+        """
+        專業級動態爬蟲方案：根據不同分類與番號，主動向各大平台進行真實搜尋，並解析出最精準的直達網址與封面圖。
+        具備多來源備援 (MissAV -> Jable) 機制，大幅提升找片成功率。
+        """
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8",
+        }
+
+        if code.lower().startswith("http"):
+            # 汎用網址解析：若是直接提供網址，則透過抓取網站的 Open Graph (og:image) 來取得高畫質封面圖
+            try:
+                async with self.bot.session.get(code, headers=headers, timeout=5) as resp:
+                    if resp.status == 200:
+                        html = await resp.text()
+                        # 涵蓋主流網站 (包含各大成人平台) 的預覽圖標籤寫法
+                        patterns = [
+                            r'<meta[^>]*property=[\'"]og:image[\'"][^>]*content=[\'"]([^\'"]+)[\'"]',
+                            r'<meta[^>]*content=[\'"]([^\'"]+)[\'"][^>]*property=[\'"]og:image[\'"]',
+                            r'<meta[^>]*name=[\'"]twitter:image[\'"][^>]*content=[\'"]([^\'"]+)[\'"]',
+                            r'<meta[^>]*content=[\'"]([^\'"]+)[\'"][^>]*name=[\'"]twitter:image[\'"]'
+                        ]
+                        for p in patterns:
+                            match = re.search(p, html, re.IGNORECASE)
+                            if match:
+                                # 過濾掉圖片連結是相對路徑的極端狀況，確保轉為絕對網址
+                                thumbnail = match.group(1) if match.group(1).startswith("http") else urllib.parse.urljoin(code, match.group(1))
+                                return code, thumbnail
+            except Exception:
+                pass
+            return code, None
+
+        # 針對裏番動畫，專門搜尋 Hanime1
+        if category == "裏番動畫":
+            try:
+                search_url = f"https://hanime1.me/search?query={urllib.parse.quote(code)}"
+                async with self.bot.session.get(search_url, headers=headers, timeout=5) as resp:
+                    if resp.status == 200:
+                        html = await resp.text()
+                        pattern = r'<a href="(https://hanime1\.me/watch\?v=[^"]+)"[^>]*>.*?<img[^>]+(?:src|data-src)="([^"]+)"'
+                        match = re.search(pattern, html, re.DOTALL)
+                        if match:
+                            return match.group(1), match.group(2)
+            except Exception:
+                pass
+            return None, None
+
+        # 策略一：主搜尋 MissAV (片源最廣，無碼/有碼/素人皆有)
+        try:
+            search_url = f"https://missav.ws/search/{urllib.parse.quote(code)}"
+            async with self.bot.session.get(search_url, headers=headers, timeout=5) as resp:
+                if resp.status == 200:
+                    html = await resp.text()
+                    pattern = r'<a href="(https://missav\.ws/(?:[a-z]{2}/)?([a-zA-Z0-9-]+))"[^>]*>.*?<img[^>]+(?:data-src|src)="([^"]+)"'
+                    matches = re.findall(pattern, html, re.DOTALL)
+                    if matches:
+                        # 盡量找標題與番號完全相符的 (忽略大小寫與橫線)
+                        for match in matches:
+                            if code.lower().replace("-", "") in match[1].lower().replace("-", ""):
+                                return match[0], match[2]
+                        return matches[0][0], matches[0][2] # 找不到完全相符的就給第一個搜尋結果的網址與圖
+        except Exception:
+            pass
+
+        # 策略二：備援搜尋 Jable.tv (高畫質優選)
+        try:
+            search_url = f"https://jable.tv/search/{urllib.parse.quote(code)}/"
+            async with self.bot.session.get(search_url, headers=headers, timeout=5) as resp:
+                if resp.status != 200:
+                    return None, None
+                
+                html = await resp.text()
+
+                pattern = rf'<a href="(/videos/{re.escape(code)}/)"[^>]*>.*?<img[^>]+(?:data-src|src)="([^"]+)"'
+                match = re.search(pattern, html, re.IGNORECASE | re.DOTALL)
+                if match:
+                    return f"https://jable.tv{match.group(1)}", match.group(2)
+
+                first_result_pattern = r'<a href="(https://jable\.tv/videos/[^"]+/)".*?<img[^>]+(?:data-src|src)="([^"]+)"[^>]*alt="([^"]+)"'
+                first_match = re.search(first_result_pattern, html, re.DOTALL)
+                if first_match and code.upper() in first_match.group(3).upper():
+                    return first_match.group(1), first_match.group(2)
+        except Exception:
+            pass
+            
+        return None, None
 
     async def get_av_recommendation(self, category="日本精選"):
         """片單庫：你可以隨時在這裡新增更多你推薦的番號與評價"""
@@ -272,8 +368,13 @@ class NSFW(commands.Cog):
             async with self.bot.db.db.execute('SELECT id, user_id, code, actress, description FROM nsfw_submissions WHERE category = ? ORDER BY RANDOM() LIMIT 1', (category,)) as cursor:
                 row = await cursor.fetchone()
                 if row:
-                    # 在點評後面加上特別標註，讓抽到的人知道這是群友推薦的
-                    return {"id": row[0], "submitter_id": row[1], "code": row[2], "actress": row[3], "desc": f"{row[4]}\n*(💬 來自群友的熱心推薦)*", "category": category}
+                    submission_id, submitter_id, code, actress, desc = row
+                    result_av = {"id": submission_id, "submitter_id": submitter_id, "code": code, "actress": actress, "desc": f"{desc}\n*(💬 來自群友的熱心推薦)*", "category": category}
+                    if not code.lower().startswith("http"):
+                        res = await self.find_direct_url_from_code(code, category)
+                        if res[0]: result_av['url'] = res[0]
+                        if res[1]: result_av['thumbnail'] = res[1]
+                    return result_av
 
         # 蒐羅近十年的熱門精選，收錄 500 部經典番號
         actress_db = {
@@ -400,15 +501,20 @@ class NSFW(commands.Cog):
         actress = random.choice(list(db.keys()))
         code = random.choice(db[actress])
         desc = random.choice(pool)
+        result_av = {"code": code, "actress": actress, "desc": desc, "category": category}
 
         if category == "日本精選":
-            if code == "SSNI-432": desc = "經典必看神作，引退前的神級作品之一。"
-            elif code == "IPX-192": desc = "小惡魔專屬，這部絕對能滿足你的期待。"
-            elif code == "STARS-246": desc = "頂級神顏，回歸後話題性最高的一部。"
-            elif code == "FSDSS-077": desc = "話題女王，極致誘惑的頂尖展現。"
-            elif code == "ADN-348": desc = "充滿透明感的清純系代表作。"
+            if code == "SSNI-432": result_av['desc'] = "經典必看神作，引退前的神級作品之一。"
+            elif code == "IPX-192": result_av['desc'] = "小惡魔專屬，這部絕對能滿足你的期待。"
+            elif code == "STARS-246": result_av['desc'] = "頂級神顏，回歸後話題性最高的一部。"
+            elif code == "FSDSS-077": result_av['desc'] = "話題女王，極致誘惑的頂尖展現。"
+            elif code == "ADN-348": result_av['desc'] = "充滿透明感的清純系代表作。"
 
-        return {"code": code, "actress": actress, "desc": desc, "category": category}
+        if not code.lower().startswith("http") and category in ["日本精選", "真實素人", "動漫改編", "裏番動畫"]:
+            res = await self.find_direct_url_from_code(code, category)
+            if res[0]: result_av['url'] = res[0]
+            if res[1]: result_av['thumbnail'] = res[1]
+        return result_av
 
     @commands.hybrid_command(name="setnsfw", aliases=["設定老司機頻道", "設定我很好片頻道"], help="【管理員】設定每日推播成人片的專屬頻道")
     @commands.has_permissions(manage_channels=True)
@@ -517,6 +623,9 @@ class NSFW(commands.Cog):
             search_links = get_search_links(av['code'], av['category'])
             embed.add_field(name="🔗 快速搜尋", value=search_links, inline=False)
         
+        if av.get('thumbnail'):
+            embed.set_image(url=av['thumbnail'])
+            
         embed.set_footer(text="💡 使用 /av 可以隨時再抽一部！")
 
         for channel_id in channels:
