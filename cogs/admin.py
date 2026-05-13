@@ -79,5 +79,12 @@ class Admin(commands.Cog):
         
         await msg.edit(content=None, embed=embed)
 
+    # 🛡️ 功能 5：優雅關機 (機器人擁有者專用)
+    @commands.command(name="shutdown", aliases=["關機", "睡覺"], help="【機器人擁有者專用】關閉機器人")
+    @commands.is_owner()
+    async def shutdown(self, ctx):
+        await ctx.send("我溜了。")
+        await self.bot.close()
+
 async def setup(bot):
     await bot.add_cog(Admin(bot))
