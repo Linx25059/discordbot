@@ -5,9 +5,12 @@ import random
 import datetime
 import zoneinfo
 import urllib.parse
+import re
 
-def get_primary_link(code, category):
+def get_primary_link(code, category, direct_url=None):
     """取得主要的跳轉網址 (點擊標題或番號時觸發)"""
+    if direct_url:
+        return direct_url
     if code.lower().startswith("http"):
         return code
     search_query = urllib.parse.quote(code)
@@ -16,7 +19,7 @@ def get_primary_link(code, category):
     elif category == "裏番動畫":
         return f"https://hanime1.me/search?query={search_query}"
     else:
-        return f"https://missav.com/search/{search_query}"
+        return f"https://missav.ws/search/{search_query}"
 
 def get_search_links(code, category):
     """根據影片分類動態產生最適合的搜尋網址"""
@@ -25,20 +28,26 @@ def get_search_links(code, category):
         
     search_query = urllib.parse.quote(code)
     if category == "歐美精選":
-        return (
+        streaming = (
             f"[Pornhub](https://www.pornhub.com/video/search?search={search_query}) ｜ [Xvideos](https://www.xvideos.com/?k={search_query}) ｜ [SpankBang](https://spankbang.com/s/{search_query}/)\n"
-            f"[Eporner](https://www.eporner.com/search/{search_query}/) ｜ [MissAV](https://missav.com/search/{search_query}) ｜ [Google](https://www.google.com/search?q={search_query})"
+            f"[Eporner](https://www.eporner.com/search/{search_query}/) ｜ [xHamster](https://xhamster.com/search/{search_query}) ｜ [XNXX](https://www.xnxx.com/search/{search_query})"
         )
+        database = f"[MissAV](https://missav.ws/search/{search_query}) ｜ [HQporner](https://hqporner.com/?q={search_query}) ｜ [Google](https://www.google.com/search?q={search_query})"
+        return f"▶️ **推薦線上看**\n{streaming}\n\n🗂️ **備用與搜尋**\n{database}"
     elif category == "裏番動畫":
-        return (
-            f"[Hanime1](https://hanime1.me/search?query={search_query}) ｜ [Hanime.tv](https://hanime.tv/search?q={search_query}) ｜ [MissAV](https://missav.com/search/{search_query})\n"
-            f"[JavDB](https://javdb.com/search?q={search_query}) ｜ [Avgle](https://avgle.com/search/videos?search_query={search_query}) ｜ [Google](https://www.google.com/search?q={search_query})"
+        streaming = (
+            f"[Hanime1](https://hanime1.me/search?query={search_query}) ｜ [Hanime.tv](https://hanime.tv/search?q={search_query})\n"
+            f"[HentaiHaven](https://hentaihaven.xxx/?s={search_query}) ｜ [MissAV](https://missav.ws/search/{search_query})"
         )
+        database = f"[JavDB](https://javdb.com/search?q={search_query}) ｜ [Avgle](https://avgle.com/search/videos?search_query={search_query}) ｜ [Google](https://www.google.com/search?q={search_query})"
+        return f"▶️ **推薦線上看**\n{streaming}\n\n🗂️ **備用與搜尋**\n{database}"
     else:
-        return (
-            f"[MissAV](https://missav.com/search/{search_query}) ｜ [Jable](https://jable.tv/search/{search_query}) ｜ [JavDB](https://javdb.com/search?q={search_query})\n"
-            f"[Avgle](https://avgle.com/search/videos?search_query={search_query}) ｜ [Netflav](https://netflav.com/search?q={search_query}) ｜ [Google](https://www.google.com/search?q={search_query})"
+        streaming = (
+            f"[MissAV](https://missav.ws/search/{search_query}) ｜ [Jable](https://jable.tv/search/{search_query}) ｜ [Netflav](https://netflav.com/search?q={search_query})\n"
+            f"[7mmtv](https://7mmtv.tv/zh/search/{search_query}) ｜ [SupJav](https://supjav.com/zh/?s={search_query})"
         )
+        database = f"[JavDB](https://javdb.com/search?q={search_query}) ｜ [JavBus](https://www.javbus.com/{search_query}) ｜ [Avgle](https://avgle.com/search/videos?search_query={search_query}) ｜ [Google](https://www.google.com/search?q={search_query})"
+        return f"▶️ **推薦線上看**\n{streaming}\n\n🗂️ **備用與搜尋**\n{database}"
 
 class NSFWRerollView(discord.ui.View):
     def __init__(self, cog, author_id, current_category, current_av):
@@ -76,18 +85,22 @@ class NSFWRerollView(discord.ui.View):
         return True
 
     async def reroll_same(self, interaction: discord.Interaction):
+        await interaction.response.defer() # 提升 UX，避免爬蟲時畫面卡頓或超時
         av = await self.cog.get_av_recommendation(self.current_category)
         self.current_av = av
+        self.current_category = av['category'] # 確保按鈕記憶體永遠跟當前畫面的分類同步
         self._update_buttons()
         embed = self._build_embed(av)
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.edit_original_response(embed=embed, view=self)
 
     async def reroll_random(self, interaction: discord.Interaction):
+        await interaction.response.defer() # 提升 UX，避免爬蟲時畫面卡頓或超時
         av = await self.cog.get_av_recommendation("隨機")
         self.current_av = av
+        self.current_category = av['category'] # 更新為剛抽出的新隨機分類
         self._update_buttons()
         embed = self._build_embed(av)
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.edit_original_response(embed=embed, view=self)
 
     async def like_recommendation(self, interaction: discord.Interaction):
         submitter_id = self.current_av['submitter_id']
@@ -117,16 +130,18 @@ class NSFWRerollView(discord.ui.View):
                 pass
 
     def _build_embed(self, av):
-        primary_link = get_primary_link(av['code'], av['category'])
+        primary_link = get_primary_link(av['code'], av['category'], av.get('url'))
         embed = discord.Embed(title=f"🔞 「我很好片」為您指路 ({av['category']})", url=primary_link, color=discord.Color.magenta())
         
-        display_code = "🔗 原網址連結" if av['code'].lower().startswith("http") else av['code']
+        display_code = "🔗 點擊觀看原網址" if (av.get('url') or av['code'].lower().startswith("http")) else av['code']
         embed.add_field(name="🔑 番號 / 連結", value=f"**[{display_code}]({primary_link})**", inline=True)
         embed.add_field(name="💃 女優", value=f"{av['actress']}", inline=True)
-        embed.add_field(name="📝 點評", value=av['desc'], inline=False)
+        embed.add_field(name="📝 點評 / 標題", value=av['desc'], inline=False)
         
-        search_links = get_search_links(av['code'], av['category'])
-        embed.add_field(name="🔗 快速搜尋", value=search_links, inline=False)
+        if not av.get('url') and not av['code'].lower().startswith("http"):
+            search_links = get_search_links(av['code'], av['category'])
+            embed.add_field(name="🔗 快速搜尋", value=search_links, inline=False)
+            
         embed.set_footer(text="💡 趕快點擊連結上車吧！")
         return embed
 
@@ -151,10 +166,105 @@ class NSFW(commands.Cog):
     def cog_unload(self):
         self.daily_av_task.cancel()
 
+    async def fetch_web_trending(self):
+        """動態爬取網路上的近期熱門榜單"""
+        sources = ["jable", "missav", "hanime1", "xvideos"]
+        random.shuffle(sources) # 隨機打亂來源順序，分散流量風險
+        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7",
+        }
+        
+        for site in sources:
+            try:
+                if site == "jable":
+                    async with self.bot.session.get("https://jable.tv/hot/", headers=headers, timeout=5) as resp:
+                        if resp.status == 200:
+                            html = await resp.text()
+                            # 匹配 Jable 影片標題與網址
+                            pattern = r'<h6 class="title">\s*<a href="(https://jable\.tv/videos/([^/]+)/)">(.*?)</a>'
+                            matches = re.findall(pattern, html)
+                            if matches:
+                                match = random.choice(matches[:30]) # 從榜單前 30 名隨機挑一部
+                                return {
+                                    "code": match[1].upper(),
+                                    "actress": "🔥 網路熱門",
+                                    "desc": f"**{match[2].strip()}**\n\n*(資料來源：Jable 近期熱門排行榜)*",
+                                    "category": "🌐 網路近期熱門",
+                                    "url": match[0]
+                                }
+                
+                elif site == "missav":
+                    async with self.bot.session.get("https://missav.ws/zh/monthly-hot", headers=headers, timeout=5) as resp:
+                        if resp.status == 200:
+                            html = await resp.text()
+                            # 匹配 MissAV 影片標題 (在 img 的 alt 中) 與網址
+                            pattern = r'<a href="(https://missav\.ws/(?:[a-z]{2}/)?([a-zA-Z0-9-]+))"[^>]*>.*?<img[^>]+alt="([^"]+)"'
+                            matches = re.findall(pattern, html, re.DOTALL)
+                            if matches:
+                                valid_matches = [m for m in matches if len(m[2]) < 150 and not m[2].startswith("<")]
+                                if valid_matches:
+                                    match = random.choice(valid_matches[:30])
+                                    return {
+                                        "code": match[1].upper(),
+                                        "actress": "🔥 網路熱門",
+                                        "desc": f"**{match[2].strip()}**\n\n*(資料來源：MissAV 本月熱門排行榜)*",
+                                        "category": "🌐 網路近期熱門",
+                                        "url": match[0]
+                                    }
+                
+                elif site == "hanime1":
+                    async with self.bot.session.get("https://hanime1.me/", headers=headers, timeout=5) as resp:
+                        if resp.status == 200:
+                            html = await resp.text()
+                            # 匹配 Hanime1 熱門趨勢
+                            pattern = r'<a href="(https://hanime1\.me/watch\?v=([^"]+))"[^>]*>.*?alt="([^"]+)"'
+                            matches = re.findall(pattern, html, re.DOTALL)
+                            if matches:
+                                valid_matches = [m for m in matches if "alt" not in m[2]]
+                                if valid_matches:
+                                    match = random.choice(valid_matches[:30])
+                                    return {
+                                        "code": match[2].strip(),
+                                        "actress": "🔥 網路熱門",
+                                        "desc": "*(資料來源：Hanime1 首頁趨勢)*",
+                                        "category": "🌐 網路近期熱門",
+                                        "url": match[0]
+                                    }
+
+                elif site == "xvideos":
+                    async with self.bot.session.get("https://www.xvideos.com/", headers=headers, timeout=5) as resp:
+                        if resp.status == 200:
+                            html = await resp.text()
+                            pattern = r'<a href="(/video\.[0-9a-z_]+/[^"]+)" title="([^"]+)"'
+                            matches = re.findall(pattern, html)
+                            if matches:
+                                match = random.choice(matches[:30])
+                                return {
+                                    "code": "XVIDEOS",
+                                    "actress": "🔥 網路熱門",
+                                    "desc": f"**{match[1].strip()}**\n\n*(資料來源：Xvideos 熱門排行)*",
+                                    "category": "🌐 網路近期熱門",
+                                    "url": f"https://www.xvideos.com{match[0]}"
+                                }
+            except Exception:
+                continue # 爬蟲發生錯誤時不干擾機器人，安靜換下一個網站
+                
+        return None
+
     async def get_av_recommendation(self, category="日本精選"):
         """片單庫：你可以隨時在這裡新增更多你推薦的番號與評價"""
         if category == "隨機":
-            category = random.choice(["日本精選", "歐美精選", "動漫改編", "真實素人", "裏番動畫"])
+            category = random.choice(["日本精選", "歐美精選", "動漫改編", "真實素人", "裏番動畫", "網路近期熱門"])
+
+        # 進入熱門爬蟲邏輯
+        if category == "網路近期熱門":
+            web_av = await self.fetch_web_trending()
+            if web_av:
+                return web_av
+            category = "日本精選" # 萬一兩個網站都被 Cloudflare 擋住，自動退回安全備案
 
         # 嘗試從資料庫抓取玩家投稿
         # 30% 機率從玩家投稿中抽取 (如果有投稿的話)
@@ -263,11 +373,11 @@ class NSFW(commands.Cog):
 
         # 🔞 裏番動畫 (H-Anime) 片單庫 (5 個知名製作商，各 20 部作品，共 100 部)
         hanime_db = {
-            "Queen Bee (女王蜂)": [f"QUEENBEE-{i:03d}" for i in range(1, 21)],
-            "Pink Pineapple (粉紅鳳梨)": [f"PINK-{i:03d}" for i in range(1, 21)],
-            "PoRO (雷火劍)": [f"PORO-{i:03d}" for i in range(1, 21)],
-            "Mary Jane": [f"MARYJANE-{i:03d}" for i in range(1, 21)],
-            "Bunnywalker": [f"BUNNY-{i:03d}" for i in range(1, 21)]
+            "Queen Bee (女王蜂)": [f"傲慢王女的陷落 第{i}話" for i in range(1, 21)],
+            "Pink Pineapple (粉紅鳳梨)": [f"魔法少女的秘密契約 第{i}卷" for i in range(1, 21)],
+            "PoRO (雷火劍)": [f"黑暗精靈之森 第{i}章" for i in range(1, 21)],
+            "Mary Jane": [f"學園的背德日常 第{i}話" for i in range(1, 21)],
+            "Bunnywalker": [f"異世界後宮物語 第{i}集" for i in range(1, 21)]
         }
         hanime_desc = [
             "經典實用裏番，畫風相當討喜。", "這部的無修正版本絕對值得一看。", "劇情與實用度兼具的優秀動畫。", 
@@ -320,7 +430,8 @@ class NSFW(commands.Cog):
         app_commands.Choice(name="🇺🇸 歐美精選", value="歐美精選"),
         app_commands.Choice(name="👗 動漫改編 (Cosplay)", value="動漫改編"),
         app_commands.Choice(name="📷 真實素人", value="真實素人"),
-        app_commands.Choice(name="🔞 裏番動畫 (H-Anime)", value="裏番動畫")
+        app_commands.Choice(name="🔞 裏番動畫 (H-Anime)", value="裏番動畫"),
+        app_commands.Choice(name="🌐 網路近期熱門", value="網路近期熱門")
     ])
     async def submit_av(self, ctx, code: str, actress: str, desc: str, category: str = "日本精選"):
         if not ctx.channel.is_nsfw():
@@ -343,15 +454,39 @@ class NSFW(commands.Cog):
         app_commands.Choice(name="👗 動漫改編 (Cosplay)", value="動漫改編"),
         app_commands.Choice(name="📷 真實素人", value="真實素人"),
         app_commands.Choice(name="🔞 裏番動畫 (H-Anime)", value="裏番動畫"),
+        app_commands.Choice(name="🌐 網路近期熱門", value="網路近期熱門"),
         app_commands.Choice(name="🎲 隨機 (全分類)", value="隨機")
     ])
     async def recommend_av(self, ctx, category: str = "日本精選"):
         if not ctx.channel.is_nsfw():
             return await ctx.send(embed=discord.Embed(description="❌ 這裡不是 NSFW 頻道，請移步至「我很好片」專區！", color=discord.Color.red()), ephemeral=True)
             
+        await ctx.defer() # 讓 Discord 先顯示「機器人正在思考...」，避免超時
         av = await self.get_av_recommendation(category)
         
-        view = NSFWRerollView(self, ctx.author.id, category, av)
+        view = NSFWRerollView(self, ctx.author.id, av['category'], av)
+        embed = view._build_embed(av)
+        await ctx.send(embed=embed, view=view)
+
+    @commands.hybrid_command(name="random_av", aliases=["隨機抽片", "隨機車牌", "抽"], help="隨機推薦一部成人片 (預設從全部分類隨機抽)")
+    @app_commands.describe(category="選擇你想看的分類 (預設為全分類隨機)")
+    @app_commands.choices(category=[
+        app_commands.Choice(name="🎲 隨機 (全分類)", value="隨機"),
+        app_commands.Choice(name="🇯🇵 日本精選", value="日本精選"),
+        app_commands.Choice(name="🇺🇸 歐美精選", value="歐美精選"),
+        app_commands.Choice(name="👗 動漫改編 (Cosplay)", value="動漫改編"),
+        app_commands.Choice(name="📷 真實素人", value="真實素人"),
+        app_commands.Choice(name="🔞 裏番動畫 (H-Anime)", value="裏番動畫"),
+        app_commands.Choice(name="🌐 網路近期熱門", value="網路近期熱門")
+    ])
+    async def random_av(self, ctx, category: str = "隨機"):
+        if not ctx.channel.is_nsfw():
+            return await ctx.send(embed=discord.Embed(description="❌ 這裡不是 NSFW 頻道，請移步至「我很好片」專區！", color=discord.Color.red()), ephemeral=True)
+            
+        await ctx.defer() # 讓 Discord 先顯示「機器人正在思考...」，避免超時
+        av = await self.get_av_recommendation(category)
+        
+        view = NSFWRerollView(self, ctx.author.id, av['category'], av)
         embed = view._build_embed(av)
         await ctx.send(embed=embed, view=view)
 
@@ -365,21 +500,22 @@ class NSFW(commands.Cog):
         if not channels:
             return
 
-        # 每日推播隨機挑選分類 (日本 40%, 素人 20%, 歐美 15%, 裏番 15%, 動漫 10%)
-        categories = ["日本精選", "歐美精選", "動漫改編", "真實素人", "裏番動畫"]
-        chosen_category = random.choices(categories, weights=[0.4, 0.15, 0.1, 0.2, 0.15])[0]
+        # 每日推播加入網路熱門分類
+        categories = ["日本精選", "歐美精選", "動漫改編", "真實素人", "裏番動畫", "網路近期熱門"]
+        chosen_category = random.choices(categories, weights=[0.3, 0.15, 0.1, 0.15, 0.1, 0.2])[0]
         av = await self.get_av_recommendation(chosen_category)
         
-        primary_link = get_primary_link(av['code'], av['category'])
+        primary_link = get_primary_link(av['code'], av['category'], av.get('url'))
         embed = discord.Embed(title=f"🌙 深夜福利時間 ({av['category']})", url=primary_link, description="夜深了，是時候放鬆一下了！今天的推薦車牌：", color=discord.Color.magenta())
         
-        display_code = "🔗 原網址連結" if av['code'].lower().startswith("http") else av['code']
-        embed.add_field(name="🔑 番號 / 連結", value=f"**{display_code}**", inline=True)
-        embed.add_field(name="💃 女優", value=f"{av['actress']}", inline=True)
-        embed.add_field(name="📝 點評", value=av['desc'], inline=False)
+        display_code = "🔗 點擊觀看原網址" if (av.get('url') or av['code'].lower().startswith("http")) else av['code']
+        embed.add_field(name="🔑 番號 / 連結", value=f"**[{display_code}]({primary_link})**", inline=True)
+        embed.add_field(name="� 女優", value=f"{av['actress']}", inline=True)
+        embed.add_field(name="📝 點評 / 標題", value=av['desc'], inline=False)
         
-        search_links = get_search_links(av['code'], av['category'])
-        embed.add_field(name="🔗 快速搜尋", value=search_links, inline=False)
+        if not av.get('url') and not av['code'].lower().startswith("http"):
+            search_links = get_search_links(av['code'], av['category'])
+            embed.add_field(name="🔗 快速搜尋", value=search_links, inline=False)
         
         embed.set_footer(text="💡 使用 /av 可以隨時再抽一部！")
 
@@ -394,6 +530,97 @@ class NSFW(commands.Cog):
     @daily_av_task.before_loop
     async def before_daily_av_task(self):
         await self.bot.wait_until_ready()
+
+    @commands.hybrid_command(name="av_top", aliases=["老司機排行榜", "熱門車牌", "車牌排行"], help="查看「我很好片」頻道中最受歡迎的群友推薦車牌")
+    async def av_top(self, ctx):
+        if not ctx.channel.is_nsfw():
+            return await ctx.send(embed=discord.Embed(description="❌ 這裡不是 NSFW 頻道，請移步至「我很好片」專區！", color=discord.Color.red()), ephemeral=True)
+            
+        async with self.bot.db.db.execute('SELECT user_id, code, actress, likes, category FROM nsfw_submissions WHERE likes > 0 ORDER BY likes DESC LIMIT 10') as cursor:
+            results = await cursor.fetchall()
+            
+        if not results:
+            return await ctx.send(embed=discord.Embed(description="🤔 目前還沒有任何被點讚的群友推薦車牌喔！趕快用 `/submit_av` 推薦，讓大家抽籤按讚吧！", color=discord.Color.light_grey()))
+            
+        embed = discord.Embed(title="🏆 老司機名人堂 (Top 10 熱門推薦)", description="來看看大家最喜歡哪些群友無私分享的神作：", color=discord.Color.gold())
+        
+        for i, (user_id, code, actress, likes, category) in enumerate(results):
+            user = self.bot.get_user(user_id)
+            name = user.display_name if user else f"熱心老司機"
+            medal = "🥇" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else "🏅"
+            
+            # 防呆：如果是網址，就不要直接把超長網址印出來破壞版面
+            display_code = "🔗 外部連結" if code.lower().startswith("http") else code
+            
+            embed.add_field(name=f"{medal} 第 {i+1} 名：{name} 的推薦", value=f"**番號/連結：** `{display_code}`\n**女優：** {actress}\n**分類：** {category}\n💖 **獲得讚數：** `{likes}` 讚", inline=False)
+            
+        embed.set_footer(text="💡 提示：使用 /av 抽到群友推薦的片時，點擊「👍 感謝推薦」就能幫他增加讚數喔！")
+        await ctx.send(embed=embed)
+
+    @commands.hybrid_command(name="my_av", aliases=["我的車牌", "我的推薦"], help="查看你投稿過的所有車牌與獲得的讚數")
+    async def my_av(self, ctx):
+        async with self.bot.db.db.execute('SELECT id, code, actress, likes, category FROM nsfw_submissions WHERE user_id = ? ORDER BY id DESC', (ctx.author.id,)) as cursor:
+            results = await cursor.fetchall()
+
+        if not results:
+            return await ctx.send(embed=discord.Embed(description="🤔 你還沒有推薦過任何車牌喔！趕快用 `/submit_av` 來發車吧！", color=discord.Color.light_grey()), ephemeral=True)
+
+        embed = discord.Embed(title=f"🚗 {ctx.author.display_name} 的專屬車庫", description=f"你總共推薦了 **{len(results)}** 部作品：\n*(提示：使用 `/edit_av` 或 `/del_av` 搭配 ID 可以修改或刪除)*", color=discord.Color.blue())
+
+        for row in results[:15]: # 最多顯示 15 筆避免版面爆掉
+            sub_id, code, actress, likes, category = row
+            display_code = "🔗 外部連結" if code.lower().startswith("http") else code
+            embed.add_field(name=f"🆔 ID: {sub_id} | {category}", value=f"**番號/連結：** `{display_code}`\n**女優：** {actress}\n💖 `{likes}` 讚", inline=False)
+
+        if len(results) > 15:
+            embed.set_footer(text=f"※ 為了版面美觀，僅顯示最近的 15 筆紀錄。")
+
+        await ctx.send(embed=embed, ephemeral=True)
+
+    @commands.hybrid_command(name="del_av", aliases=["刪除車牌", "刪除推薦"], help="刪除你推薦過的車牌")
+    @app_commands.describe(submission_id="請輸入你要刪除的車牌 ID (可透過 /my_av 查詢)")
+    async def del_av(self, ctx, submission_id: int):
+        async with self.bot.db.db.execute('SELECT 1 FROM nsfw_submissions WHERE id = ? AND user_id = ?', (submission_id, ctx.author.id)) as cursor:
+            if not await cursor.fetchone():
+                return await ctx.send(embed=discord.Embed(description=f"❌ 找不到 ID 為 `{submission_id}` 的推薦，或者該推薦不是你投稿的喔！", color=discord.Color.red()), ephemeral=True)
+
+        await self.bot.db.db.execute('DELETE FROM nsfw_submissions WHERE id = ?', (submission_id,))
+        await self.bot.db.db.commit()
+
+        await ctx.send(embed=discord.Embed(description=f"🗑️ 已成功刪除 ID `{submission_id}` 的車牌推薦！", color=discord.Color.green()), ephemeral=True)
+
+    @commands.hybrid_command(name="edit_av", aliases=["編輯車牌", "編輯推薦"], help="編輯你推薦過的車牌資訊")
+    @app_commands.describe(submission_id="要編輯的車牌 ID (可透過 /my_av 查詢)", code="新的番號或網址", actress="新的女優名稱", desc="新的點評", category="新的分類")
+    @app_commands.choices(category=[
+        app_commands.Choice(name="🇯🇵 日本精選", value="日本精選"),
+        app_commands.Choice(name="🇺🇸 歐美精選", value="歐美精選"),
+        app_commands.Choice(name="👗 動漫改編 (Cosplay)", value="動漫改編"),
+        app_commands.Choice(name="📷 真實素人", value="真實素人"),
+        app_commands.Choice(name="🔞 裏番動畫 (H-Anime)", value="裏番動畫")
+    ])
+    async def edit_av(self, ctx, submission_id: int, code: str = None, actress: str = None, desc: str = None, category: str = None):
+        if not any([code, actress, desc, category]):
+            return await ctx.send(embed=discord.Embed(description="❌ 你沒有填寫任何要修改的新內容喔！", color=discord.Color.red()), ephemeral=True)
+
+        async with self.bot.db.db.execute('SELECT code, actress, description, category FROM nsfw_submissions WHERE id = ? AND user_id = ?', (submission_id, ctx.author.id)) as cursor:
+            row = await cursor.fetchone()
+            if not row:
+                return await ctx.send(embed=discord.Embed(description=f"❌ 找不到 ID 為 `{submission_id}` 的推薦，或者該推薦不是你投稿的喔！", color=discord.Color.red()), ephemeral=True)
+
+        old_code, old_actress, old_desc, old_category = row
+        new_code = (code if code.lower().startswith("http") else code.upper()) if code else old_code
+        new_actress = actress if actress else old_actress
+        new_desc = desc if desc else old_desc
+        new_category = category if category else old_category
+
+        await self.bot.db.db.execute('UPDATE nsfw_submissions SET code = ?, actress = ?, description = ?, category = ? WHERE id = ?', (new_code, new_actress, new_desc, new_category, submission_id))
+        await self.bot.db.db.commit()
+
+        embed = discord.Embed(title="✅ 車牌編輯成功！", description=f"已成功更新 ID `{submission_id}` 的推薦內容：", color=discord.Color.green())
+        display_code = f"🔗 原網址連結" if new_code.lower().startswith("http") else f"`{new_code}`"
+        embed.add_field(name="更新後內容", value=f"**分類：** {new_category}\n**番號/連結：** {display_code}\n**女優：** {new_actress}\n**點評：** {new_desc}")
+
+        await ctx.send(embed=embed, ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(NSFW(bot))
