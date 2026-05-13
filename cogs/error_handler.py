@@ -13,20 +13,19 @@ class ErrorHandler(commands.Cog):
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
         # 忽略有自訂錯誤處理器的指令
-        if hasattr(ctx.command, 'on_error'):
+        if ctx.command and hasattr(ctx.command, 'on_error'):
             return
 
         # 取得最原始的錯誤
         error = getattr(error, 'original', error)
 
-        # 忽略特定錯誤 (例如：找不到指令)
-        if isinstance(error, (commands.CommandNotFound,)):
-            return
-
         view = BugReportPanelView()
         embed = discord.Embed(title="🚨 發生了一點錯誤", color=discord.Color.red())
 
-        if isinstance(error, commands.DisabledCommand):
+        if isinstance(error, commands.CommandNotFound):
+            embed.description = f"找不到 `{ctx.invoked_with}` 這個指令喔！\n可以使用 `/help` 來查看所有可用的指令清單。"
+
+        elif isinstance(error, commands.DisabledCommand):
             embed.description = f"目前 `{ctx.command}` 指令暫時被停用了喔。"
         
         elif isinstance(error, commands.CommandOnCooldown):
@@ -40,8 +39,18 @@ class ErrorHandler(commands.Cog):
         elif isinstance(error, commands.BotMissingPermissions):
             embed.description = f"我沒有足夠的權限執行這個指令！\n需要的權限：`{'`, `'.join(error.missing_permissions)}`"
 
+        elif isinstance(error, commands.NotOwner):
+            embed.description = "❌ 這是開發者專用的隱藏指令，一般使用者無法執行喔！"
+
+        elif isinstance(error, commands.NSFWChannelRequired):
+            embed.description = "❌ 這個指令只能在 **NSFW (限制級)** 頻道使用喔！請移步至老司機專區。"
+
+        elif isinstance(error, commands.CheckFailure):
+            embed.description = "❌ 你目前不符合使用這個指令的條件或權限喔！"
+
         elif isinstance(error, commands.UserInputError):
-            embed.description = f"指令的格式好像不太對喔！\n可以使用 `{ctx.prefix}help {ctx.command}` 查看正確的用法。"
+            cmd_name = ctx.command.qualified_name if ctx.command else "指令"
+            embed.description = f"指令的格式好像不太對喔！\n可以使用 `/help {cmd_name}` 查看正確的用法。"
 
         else:
             # 其他所有未處理的錯誤
