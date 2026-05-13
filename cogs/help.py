@@ -13,7 +13,7 @@ class Help(commands.Cog):
         self.current_version = "1.1"
         self.changelog_title = f"✨ 機器人更新日誌 (v{self.current_version})"
         self.changelog_text = (
-            "**🚀 v1.2 版本更新發布！**\n"
+            "**🚀 v1.1 版本更新發布！**\n"
             "• 💸 **賭場便利升級：** 所有賭場遊戲（包含 21 點）結算後，現在都支援「一鍵重新自訂賭注」開局囉！\n"
             "• 🏆 **排行榜獎勵機制：** 賭神排行榜新增「每週重置」功能，每週一凌晨結算，前三名將可獲得豐厚的金幣獎勵！\n"
             "• 🃏 **21點進階玩法：** 完美還原真實賭場，新增「✂️ 分牌 (Split)」與「🏳️ 投降 (Surrender)」機制。\n"
