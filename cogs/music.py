@@ -128,6 +128,8 @@ class Music(commands.Cog):
         if not ctx.author.voice:
             return await ctx.send("❌ 你必須先加入一個語音頻道，我才能進去放音樂喔！", ephemeral=True)
         
+        await ctx.defer() # 延遲回應：加入語音頻道與搜尋可能需要時間，先發送等待狀態避免 Discord 判定超時
+
         # 讓機器人加入語音頻道
         vc = ctx.voice_client
         if not vc:
