@@ -12,10 +12,10 @@ class Info(commands.Cog):
             description="我是一個多功能的 Discord 機器人，提供許多實用和娛樂的功能喔！\n無論是想賺金幣、找人聊天，還是聽聽音樂，我都可以幫忙！",
             color=discord.Color.blue()
         )
-        embed.add_field(name="💰 經濟系統", value="打工賺錢、轉帳，以及各種賭場小遊戲。", inline=False)
-        embed.add_field(name="🤖 AI 聊天", value="內建聰明的 AI，隨時陪你聊天、為你解答問題！", inline=False)
-        embed.add_field(name="🎵 音樂與娛樂", value="點播 YouTube 音樂、產生趣味圖片。", inline=False)
-        embed.add_field(name="🛠️ 實用工具", value="天氣查詢、動態語音頻道管理、新聞推播！", inline=False)
+        embed.add_field(name="💰 經濟系統", value="打工賺錢、轉帳、各種賭場小遊戲，以及具備走勢圖的虛擬股市。", inline=False)
+        embed.add_field(name="🤖 AI 聊天", value="內建聰明的 AI 助理，支援多種人格切換（如傲嬌、貓娘），隨時陪你暢聊！", inline=False)
+        embed.add_field(name="🎵 音樂與娛樂", value="點播 YouTube 音樂、產生趣味迷因圖，以及專屬的老司機深夜福利推播。", inline=False)
+        embed.add_field(name="🛠️ 實用工具", value="天氣查詢、動態語音頻道管理、新聞推播、社群連結自動修復！", inline=False)
         
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         embed.set_footer(text="💡 提示：輸入 `/help` 可以查看完整的指令清單喔！")
