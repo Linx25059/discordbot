@@ -5,6 +5,8 @@ import random
 import datetime
 from datetime import timezone, timedelta
 import zoneinfo
+import json
+import urllib.parse
 
 class Finance(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -14,8 +16,21 @@ class Finance(commands.Cog):
         await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS market_news_settings (guild_id INTEGER PRIMARY KEY, channel_id INTEGER)''')
         await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS virtual_stocks (symbol TEXT PRIMARY KEY, name TEXT, prev_price INTEGER, price INTEGER, next_price INTEGER)''')
         await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS investments (user_id INTEGER, symbol TEXT, amount INTEGER, avg_price REAL, PRIMARY KEY (user_id, symbol))''')
+        await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS stock_history (symbol TEXT, timestamp TEXT, price INTEGER)''')
         await self.bot.db.db.commit()
         await self.init_virtual_stocks()
+        
+        # 初始化歷史股價基準線 (如果資料表是空的，先幫大家塞入當前的價格當作起點)
+        async with self.bot.db.db.execute('SELECT COUNT(*) FROM stock_history') as cursor:
+            history_count = await cursor.fetchone()
+        if history_count[0] == 0:
+            now_str = datetime.datetime.now(zoneinfo.ZoneInfo("Asia/Taipei")).strftime('%m/%d %H:00')
+            async with self.bot.db.db.execute('SELECT symbol, price FROM virtual_stocks') as cursor:
+                existing_stocks = await cursor.fetchall()
+            for sym, price in existing_stocks:
+                await self.bot.db.db.execute('INSERT INTO stock_history (symbol, timestamp, price) VALUES (?, ?, ?)', (sym, now_str, price))
+            await self.bot.db.db.commit()
+            
         self.market_update_loop.start()
 
     def cog_unload(self):
@@ -58,6 +73,7 @@ class Finance(commands.Cog):
         async with self.bot.db.db.execute('SELECT symbol, name, price, next_price FROM virtual_stocks') as cursor:
             stocks = await cursor.fetchall()
             
+        now_str = datetime.datetime.now(zoneinfo.ZoneInfo("Asia/Taipei")).strftime('%m/%d %H:00')
         for sym, name, price, next_price in stocks:
             # 產生下下個小時的價格 (加入 5% 機率暴跌或暴漲的黑天鵝事件)
             if random.random() < 0.05:
@@ -75,6 +91,8 @@ class Finance(commands.Cog):
             new_next = max(1, new_next)
             
             await self.bot.db.db.execute('UPDATE virtual_stocks SET prev_price = ?, price = ?, next_price = ? WHERE symbol = ?', (price, next_price, new_next, sym))
+            # 紀錄歷史軌跡
+            await self.bot.db.db.execute('INSERT INTO stock_history (symbol, timestamp, price) VALUES (?, ?, ?)', (sym, now_str, next_price))
         await self.bot.db.db.commit()
 
         # --- 📡 播報虛擬股市新聞 ---
@@ -134,19 +152,49 @@ class Finance(commands.Cog):
         async with self.bot.db.db.execute('SELECT symbol, name, price, prev_price FROM virtual_stocks') as cursor:
             stocks = await cursor.fetchall()
         
-        embed = discord.Embed(title="📊 虛擬股市行情", description="股市價格每小時變動，低買高賣來累積財富吧！", color=discord.Color.dark_theme())
+        # --- 判斷大盤整體局勢 ---
+        total_change_pct = 0
+        for sym, name, price, prev_price in stocks:
+            if prev_price > 0:
+                total_change_pct += (price - prev_price) / prev_price * 100
+        
+        avg_change = total_change_pct / len(stocks) if stocks else 0
+        
+        if avg_change >= 2.0:
+            market_status = "🐂 牛市狂熱 (大漲)"
+            embed_color = discord.Color.green()
+        elif avg_change > 0:
+            market_status = "📈 溫和偏多 (小漲)"
+            embed_color = discord.Color.light_embed()
+        elif avg_change <= -2.0:
+            market_status = "🐻 熊市血洗 (大跌)"
+            embed_color = discord.Color.red()
+        elif avg_change < 0:
+            market_status = "📉 溫和偏空 (小跌)"
+            embed_color = discord.Color.orange()
+        else:
+            market_status = "➖ 盤整震盪 (平盤)"
+            embed_color = discord.Color.dark_theme()
+
+        embed = discord.Embed(title="📊 虛擬股市行情", description=f"**🌐 當前大盤局勢：** {market_status} (平均漲跌: **{avg_change:+.2f}%**)\n股市價格每小時變動，低買高賣來累積財富吧！", color=embed_color)
         
         for sym, name, price, prev_price in stocks:
             change = price - prev_price
             change_percent = (change / prev_price * 100) if prev_price > 0 else 0
-            if change > 0:
-                trend = "🔺"
-            elif change < 0:
-                trend = "🔻"
+            
+            # --- 直觀的個股狀態顯示 ---
+            if change_percent >= 10:
+                trend = "🚀 暴漲"
+            elif change_percent > 0:
+                trend = "🔺 上漲"
+            elif change_percent <= -10:
+                trend = "💥 暴跌"
+            elif change_percent < 0:
+                trend = "🔻 下跌"
             else:
-                trend = "➖"
+                trend = "➖ 平盤"
                 
-            embed.add_field(name=f"🏷️ {name} ({sym})", value=f"現價: **{price:,}** 金幣\n漲跌: {trend} {abs(change):,} ({change_percent:+.1f}%)", inline=True)
+            embed.add_field(name=f"🏷️ {name} ({sym})", value=f"現價: **{price:,}** 金幣\n狀態: {trend} **{change_percent:+.1f}%**", inline=True)
             
         embed.set_footer(text="使用 /buy_stock 買入、/sell_stock 賣出，或是用 /insider 購買內線消息！")
         await ctx.send(embed=embed)
@@ -274,7 +322,7 @@ class Finance(commands.Cog):
         if not holdings:
             return await ctx.send(f"📊 {ctx.author.mention} 目前沒有持有任何股票喔！")
 
-        embed = discord.Embed(title=f"📊 {ctx.author.display_name} 的投資組合", color=discord.Color.blue())
+        embed = discord.Embed(title=f"📊 {ctx.author.display_name} 的投資組合")
         embed.set_thumbnail(url=ctx.author.display_avatar.url)
 
         total_investment = 0
@@ -286,17 +334,44 @@ class Finance(commands.Cog):
                 name = symbol
             
             pnl = (current_price - avg_price) / avg_price * 100
-            trend = "🔺" if pnl > 0 else ("🔻" if pnl < 0 else "➖")
+            
+            # --- 個股漲跌狀態視覺化 ---
+            if pnl >= 10:
+                trend = "🚀 暴漲"
+            elif pnl > 0:
+                trend = "🔺 上漲"
+            elif pnl <= -10:
+                trend = "💥 暴跌"
+            elif pnl < 0:
+                trend = "🔻 下跌"
+            else:
+                trend = "➖ 平盤"
             
             cost = amount * avg_price
             value = amount * current_price
             total_investment += cost
             total_value += value
             
-            embed.add_field(name=f"🏷️ {name} ({symbol})", value=f"持有數量: **{int(amount)}** 股\n均價: `{avg_price:.1f}` | 現價: `{current_price}`\n損益: {trend} **{pnl:+.1f}%**", inline=True)
+            embed.add_field(name=f"🏷️ {name} ({symbol})", value=f"持有數量: **{int(amount)}** 股\n均價: `{avg_price:.1f}` | 現價: `{current_price}`\n狀態: {trend} **{pnl:+.1f}%**", inline=True)
 
         total_pnl_pct = ((total_value - total_investment) / total_investment * 100) if total_investment > 0 else 0
-        total_trend = "🔺" if total_pnl_pct > 0 else ("🔻" if total_pnl_pct < 0 else "➖")
+        
+        # --- 判斷投資組合整體局勢與顏色 ---
+        if total_pnl_pct >= 10.0:
+            total_trend, embed.color = "🚀 暴賺", discord.Color.green()
+        elif total_pnl_pct >= 2.0:
+            total_trend, embed.color = "🔺 大賺", discord.Color.green()
+        elif total_pnl_pct > 0:
+            total_trend, embed.color = "📈 小賺", discord.Color.light_embed()
+        elif total_pnl_pct <= -10.0:
+            total_trend, embed.color = "💥 血虧", discord.Color.red()
+        elif total_pnl_pct <= -2.0:
+            total_trend, embed.color = "🔻 大虧", discord.Color.red()
+        elif total_pnl_pct < 0:
+            total_trend, embed.color = "📉 小虧", discord.Color.orange()
+        else:
+            total_trend, embed.color = "➖ 打平", discord.Color.dark_theme()
+            
         embed.description = f"**總投入成本**: `{total_investment:,.0f}` 金幣\n**目前總市值**: `{total_value:,.0f}` 金幣\n**總未實現損益**: {total_trend} **{total_pnl_pct:+.1f}%**"
 
         await ctx.send(embed=embed)
@@ -322,6 +397,55 @@ class Finance(commands.Cog):
             medal = "🥇" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else "🏅"
             embed.add_field(name=f"{medal} 第 {i+1} 名：{name}", value=f"股票總市值: **{int(total_value):,}** 金幣", inline=False)
             
+        await ctx.send(embed=embed)
+
+    @commands.hybrid_command(name="stock_history", aliases=["股票歷史", "線圖", "走勢圖"], help="查看股票過去的價格走勢圖")
+    @app_commands.describe(symbol="輸入股票代號或名稱 (例如: TMC)")
+    async def stock_history(self, ctx, symbol: str):
+        async with self.bot.db.db.execute('SELECT symbol, name, price FROM virtual_stocks WHERE symbol = ? OR name = ?', (symbol.upper(), symbol)) as cursor:
+            stock = await cursor.fetchone()
+        
+        if not stock:
+            return await ctx.send(embed=discord.Embed(description=f"❌ 找不到股票 `{symbol}`，請確認名稱或代號是否正確。", color=discord.Color.red()), ephemeral=True)
+            
+        real_symbol, short_name, current_price = stock
+        
+        # 抓取最近 24 筆歷史紀錄 (依據 SQLite 預設的 rowid 排序保證抓到最新)
+        async with self.bot.db.db.execute('SELECT timestamp, price FROM stock_history WHERE symbol = ? ORDER BY rowid DESC LIMIT 24', (real_symbol,)) as cursor:
+            history = await cursor.fetchall()
+            
+        history.reverse() # 將時間從舊排到最新
+            
+        labels = [h[0] for h in history]
+        data = [h[1] for h in history]
+        
+        # 利用 QuickChart.io 產生精美的折線圖
+        chart_config = {
+            "type": "line",
+            "data": {
+                "labels": labels,
+                "datasets": [{
+                    "label": f"{short_name} ({real_symbol})",
+                    "data": data,
+                    "borderColor": "rgb(54, 162, 235)",
+                    "backgroundColor": "rgba(54, 162, 235, 0.2)",
+                    "borderWidth": 2,
+                    "fill": True,
+                    "pointRadius": 3,
+                    "tension": 0.3 # 讓線條有滑順的曲線感
+                }]
+            },
+            "options": {
+                "plugins": {"legend": {"display": False}},
+                "scales": {"x": {"ticks": {"maxTicksLimit": 8}}}
+            }
+        }
+        
+        encoded_config = urllib.parse.quote(json.dumps(chart_config))
+        chart_url = f"https://quickchart.io/chart?c={encoded_config}&w=600&h=300&bkg=white"
+        
+        embed = discord.Embed(title=f"📈 {short_name} ({real_symbol}) 價格走勢圖", description="以下是最近 24 小時的股價變動軌跡：", color=discord.Color.blue())
+        embed.set_image(url=chart_url)
         await ctx.send(embed=embed)
 
 async def setup(bot):
