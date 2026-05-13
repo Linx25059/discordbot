@@ -141,9 +141,27 @@ class AIChat(commands.Cog):
                 embed.add_field(name="🛠️ 原始錯誤訊息", value=f"```python\n{error_str[:1000]}\n```", inline=False)
                 view = BugReportPanelView()
                 await ctx.send(embed=embed, view=view)
+                
+                # --- 自動傳送錯誤日誌給開發者 ---
+                try:
+                    app_info = await self.bot.application_info()
+                    owner = app_info.team.owner if app_info.team else app_info.owner
+                    
+                    dev_embed = discord.Embed(title="🚨 AI 模組發生錯誤自動回報", color=discord.Color.dark_red(), timestamp=datetime.now())
+                    guild_info = f"{ctx.guild.name} (`{ctx.guild.id}`)" if ctx.guild else "私訊 (DM)"
+                    channel_info = f"#{ctx.channel.name}" if ctx.guild else "私訊"
+                    
+                    dev_embed.add_field(name="觸發伺服器/頻道", value=f"伺服器: {guild_info}\n頻道: {channel_info}", inline=False)
+                    dev_embed.add_field(name="使用者", value=f"{ctx.author.name} (`{ctx.author.id}`)", inline=False)
+                    dev_embed.add_field(name="輸入提示詞 (Prompt)", value=f"```\n{prompt[:1000]}\n```", inline=False)
+                    dev_embed.add_field(name="原始錯誤內容", value=f"```python\n{error_str[:1000]}\n```", inline=False)
+                    
+                    await owner.send(embed=dev_embed)
+                except Exception as dev_e:
+                    print(f"無法傳送錯誤日誌給開發者: {dev_e}")
 
 # 清除記憶的指令 (可選)
-    @commands.hybrid_command(name="忘記", help="清除 AI 對你的記憶")
+    @commands.hybrid_command(name="forget", aliases=["忘記", "清除記憶","遺忘汁"], help="清除 AI 對你的記憶")
     async def clear_memory(self, ctx):
         user_id = ctx.author.id
         if user_id in self.chat_sessions:
@@ -178,6 +196,31 @@ class AIChat(commands.Cog):
         total_cost = (total_today / 1000000) * twd_per_million
         embed.description = f"🔥 **今日總消耗 Token**：`{total_today:,}` Tokens\n💸 **估算成本**：約 NT$ `{total_cost:.4f}`"
         embed.set_footer(text="※ 成本以 100萬 Token = 5 TWD 估算，實際費用請依 Google Cloud 帳單為準。")
+        await ctx.send(embed=embed)
+
+    @commands.hybrid_command(name="quota", aliases=["配額", "剩餘token", "api狀態"], help="【管理員】查看 Gemini API 免費層配額與今日使用狀況")
+    @commands.has_permissions(administrator=True)
+    async def check_quota(self, ctx):
+        today_str = datetime.now().strftime('%Y-%m-%d')
+        async with self.bot.db.db.execute('SELECT SUM(total_tokens) FROM token_usage WHERE date = ?', (today_str,)) as cursor:
+            total_today = (await cursor.fetchone())[0] or 0
+
+        embed = discord.Embed(title="📊 Gemini API 配額狀態 (免費層)", color=discord.Color.blue())
+        
+        embed.description = "⚠️ **提醒**：Google 官方 API 目前未提供直接查詢「剩餘確切額度」的端點，以下為官方免費層上限與本地追蹤的用量對比。"
+
+        embed.add_field(
+            name="🆓 官方免費層限制 (Gemini 2.5 Flash)",
+            value=(
+                "• **每分鐘請求數 (RPM)**: `15` 次\n"
+                "• **每日請求數 (RPD)**: `1,500` 次\n"
+                "• **每分鐘 Token (TPM)**: `1,000,000` Tokens"
+            ),
+            inline=False
+        )
+        
+        embed.add_field(name="📈 本地追蹤今日用量", value=f"• **今日已消耗 Tokens**: `{total_today:,}` Tokens\n*(若要查看各使用者消耗明細，請使用 `/token_stats`)*", inline=False)
+        embed.set_footer(text="💡 如果頻繁遇到 429 錯誤，通常是觸發了「每分鐘 15 次」的頻率限制，請等待一分鐘後再試。")
         await ctx.send(embed=embed)
 
     @commands.hybrid_command(name="set_persona", aliases=["設定個性", "切換人格"], help="【管理員】切換 AI 的講話風格 (傲嬌、毒舌等)")
