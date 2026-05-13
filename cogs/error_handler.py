@@ -23,7 +23,7 @@ class ErrorHandler(commands.Cog):
         if isinstance(error, (commands.CommandNotFound,)):
             return
 
-        view = None
+        view = BugReportPanelView()
         embed = discord.Embed(title="🚨 發生了一點錯誤", color=discord.Color.red())
 
         if isinstance(error, commands.DisabledCommand):
@@ -45,10 +45,11 @@ class ErrorHandler(commands.Cog):
 
         else:
             # 其他所有未處理的錯誤
-            embed.description = "發生了未知的錯誤，我會盡快回報給管理員處理。\n如果您認為這是系統 Bug，請點擊下方按鈕建立專屬的報錯單！"
+            embed.description = "發生了未知的錯誤，我會盡快回報給管理員處理。"
             # 企業級優化：將例外拋入日誌系統，而非單純 print，以便後續集中監控
             logging.error(f'Ignoring exception in command {ctx.command}:', exc_info=error)
-            view = BugReportPanelView()
+
+        embed.set_footer(text="💡 若需要管理員的協助或回報問題，可隨時點擊下方按鈕！")
 
         # --- 核心修復邏輯 ---
         kwargs = {"embed": embed, "ephemeral": True}
