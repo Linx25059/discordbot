@@ -146,7 +146,7 @@ class Finance(commands.Cog):
             else:
                 trend = "➖"
                 
-        embed.add_field(name=f"🏷️ {name} ({sym})", value=f"現價: **{price:,}** 金幣\n漲跌: {trend} {abs(change):,} ({change_percent:+.1f}%)", inline=True)
+            embed.add_field(name=f"🏷️ {name} ({sym})", value=f"現價: **{price:,}** 金幣\n漲跌: {trend} {abs(change):,} ({change_percent:+.1f}%)", inline=True)
             
         embed.set_footer(text="使用 /buy_stock 買入、/sell_stock 賣出，或是用 /insider 購買內線消息！")
         await ctx.send(embed=embed)

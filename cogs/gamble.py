@@ -1,10 +1,12 @@
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 import random
 import asyncio
 import aiosqlite
 from typing import Optional
+import datetime
+import zoneinfo
 
 # --- 21點 輔助函式 ---
 def get_deck(num_decks=4):
@@ -44,6 +46,85 @@ def get_card_display(card):
         # '♥K': '<:hK:222222222222>',
     }
     return card_emojis.get(card, f"`{card}`") # 若無圖片則回傳加了反白的純文字
+
+# --- 重新下注 Modal ---
+class RebetModal(discord.ui.Modal, title='💸 重新下注'):
+    new_amount_input = discord.ui.TextInput(
+        label='新的下注金額',
+        placeholder='請輸入你想下注的金額',
+        required=True,
+        style=discord.TextStyle.short
+    )
+
+    def __init__(self, original_view: "PlayAgainView"):
+        super().__init__(timeout=180)
+        self.original_view = original_view
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            amount = int(self.new_amount_input.value)
+            if amount <= 0:
+                return await interaction.response.send_message("❌ 金額必須大於 0！", ephemeral=True)
+        except ValueError:
+            return await interaction.response.send_message("❌ 請輸入有效的數字金額！", ephemeral=True)
+
+        # 檢查餘額
+        current_balance = await self.original_view.cog.bot.db.get_balance(interaction.user.id)
+        if current_balance < amount:
+            return await interaction.response.send_message(f"❌ 你的餘額不足！(需要 **{amount:,}** 金幣)", ephemeral=True)
+
+        # 停用舊訊息的按鈕
+        for child in self.original_view.children:
+            child.disabled = True
+        await interaction.message.edit(view=self.original_view)
+        
+        # 回應 Modal
+        await interaction.response.send_message(f"✅ 已用新賭注 **{amount:,}** 金幣重新開始一局！", ephemeral=True)
+        
+        # 準備新參數
+        new_args = list(self.original_view.args)
+        new_args[-1] = amount
+        
+        # 呼叫原指令
+        await self.original_view.command_coro(self.original_view.cog, self.original_view.ctx, *new_args, **self.original_view.kwargs)
+
+class BlackjackRebetModal(discord.ui.Modal, title='💸 重新下注開桌'):
+    new_amount_input = discord.ui.TextInput(
+        label='新的牌桌賭注',
+        placeholder='請輸入每位玩家加入的賭注金額',
+        required=True,
+        style=discord.TextStyle.short
+    )
+
+    def __init__(self, cog, ctx):
+        super().__init__(timeout=180)
+        self.cog = cog
+        self.ctx = ctx
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            amount = int(self.new_amount_input.value)
+            if amount <= 0:
+                return await interaction.response.send_message("❌ 金額必須大於 0！", ephemeral=True)
+        except ValueError:
+            return await interaction.response.send_message("❌ 請輸入有效的數字金額！", ephemeral=True)
+
+        # 檢查餘額
+        current_balance = await self.cog.bot.db.get_balance(interaction.user.id)
+        if current_balance < amount:
+            return await interaction.response.send_message(f"❌ 你的餘額不足以用此金額開桌！(需要 **{amount:,}** 金幣)", ephemeral=True)
+
+        # 停用舊訊息的按鈕
+        original_view = interaction.message.view
+        for child in original_view.children:
+            child.disabled = True
+        await interaction.message.edit(view=original_view)
+        
+        # 回應 Modal
+        await interaction.response.send_message(f"✅ 已用新賭注 **{amount:,}** 金幣重新開桌！", ephemeral=True)
+        
+        # 呼叫 21 點指令
+        await self.cog.blackjack.callback(self.cog, self.ctx, amount)
 
 # --- 21點 UI 面板 ---
 class BlackjackPlayView(discord.ui.View):
@@ -287,12 +368,22 @@ class BlackjackPlayView(discord.ui.View):
                 if bal < self.amount:
                     return await inter.response.send_message(f"❌ 你的餘額不足以再開一桌！(需要 **{self.amount:,}** 金幣)", ephemeral=True)
                 
-                play_again_btn.disabled = True
+                for child in self.children:
+                    child.disabled = True
                 await inter.response.edit_message(view=self)
                 await self.cog.blackjack.callback(self.cog, self.ctx, self.amount)
                 
             play_again_btn.callback = play_again_callback
             self.add_item(play_again_btn)
+
+            rebet_btn = discord.ui.Button(label="💸 重新下注", style=discord.ButtonStyle.secondary)
+            async def rebet_callback(inter: discord.Interaction):
+                if inter.user.id != self.ctx.author.id:
+                    return await inter.response.send_message("❌ 只有原房主可以重新開桌喔！", ephemeral=True)
+                
+                await inter.response.send_modal(BlackjackRebetModal(self.cog, self.ctx))
+            rebet_btn.callback = rebet_callback
+            self.add_item(rebet_btn)
 
         if interaction:
             try:
@@ -388,6 +479,15 @@ class PlayAgainView(discord.ui.View):
         # 重新呼叫該遊戲的核心邏輯 (會自動在最下方發送一場新賭局)
         await self.command_coro(self.cog, self.ctx, *self.args, **self.kwargs)
 
+    @discord.ui.button(label="💸 重新下注", style=discord.ButtonStyle.secondary)
+    async def rebet(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.ctx.author.id:
+            return await interaction.response.send_message(embed=discord.Embed(description="❌ 這是別人的賭局，請自己發起一局喔！", color=discord.Color.red()), ephemeral=True)
+        
+        # 呼叫彈出式視窗
+        modal = RebetModal(self)
+        await interaction.response.send_modal(modal)
+
     @discord.ui.button(label="🟡 ✖️2 倍壓下注", style=discord.ButtonStyle.primary)
     async def double_down(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.ctx.author.id:
@@ -419,6 +519,53 @@ class Gamble(commands.Cog):
         # 建立賭場歷史淨利追蹤表
         await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS gamble_stats (user_id INTEGER PRIMARY KEY, net_profit INTEGER DEFAULT 0)''')
         await self.bot.db.db.commit()
+        self.weekly_reset_task.start()
+
+    async def cog_unload(self):
+        self.weekly_reset_task.cancel()
+
+    # 設定排程任務：每天台灣時間 00:00 執行
+    tz_tw = zoneinfo.ZoneInfo("Asia/Taipei")
+    @tasks.loop(time=datetime.time(hour=0, minute=0, second=0, tzinfo=tz_tw))
+    async def weekly_reset_task(self):
+        # 確保只有在星期一 (0) 執行
+        if datetime.datetime.now(self.tz_tw).weekday() != 0:
+            return
+
+        # 抓取淨賺最多的前三名 (且必須是大於 0 的贏家)
+        async with self.bot.db.db.execute('SELECT user_id, net_profit FROM gamble_stats WHERE net_profit > 0 ORDER BY net_profit DESC LIMIT 3') as cursor:
+            top_players = await cursor.fetchall()
+
+        if top_players:
+            rewards = [50000, 30000, 10000]
+            medals = ["🥇", "🥈", "🥉"]
+
+            for i, (user_id, profit) in enumerate(top_players):
+                reward = rewards[i]
+                await self.bot.db.update_balance(user_id, reward)
+                
+                # 嘗試抓取使用者物件 (若快取中沒有則透過 API 抓取)
+                user = self.bot.get_user(user_id)
+                if not user:
+                    try:
+                        user = await self.bot.fetch_user(user_id)
+                    except discord.NotFound:
+                        pass
+
+                if user:
+                    try:
+                        embed = discord.Embed(title="🏆 賭場每週排行結算", description=f"恭喜你在本週的賭場排行榜獲得 {medals[i]} 第 {i+1} 名！\n這週你總共淨賺了 **{profit:,}** 金幣。\n\n🎁 **獲得排行獎勵：** `{reward:,}` 金幣", color=discord.Color.gold())
+                        await user.send(embed=embed)
+                    except discord.Forbidden:
+                        pass
+
+        # 清空所有人的淨利紀錄，迎接新的一週
+        await self.bot.db.db.execute('UPDATE gamble_stats SET net_profit = 0')
+        await self.bot.db.db.commit()
+
+    @weekly_reset_task.before_loop
+    async def before_weekly_reset(self):
+        await self.bot.wait_until_ready()
 
     async def update_gamble_profit(self, user_id: int, amount: int):
         async with self.bot.db.db.execute('SELECT net_profit FROM gamble_stats WHERE user_id = ?', (user_id,)) as cursor:

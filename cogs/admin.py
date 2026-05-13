@@ -46,5 +46,38 @@ class Admin(commands.Cog):
         except Exception as e:
             await ctx.send(f"❌ 載入 `{cog_name}` 失敗：\n```py\n{e}\n```")
 
+    # 🛡️ 功能 4：一鍵熱修復 (Hotfix) - 重新載入所有模組並同步指令
+    @commands.command(name="hotfix", aliases=["熱修", "reloadall"], help="【機器人擁有者專用】一鍵重新載入所有模組並同步斜線指令")
+    @commands.is_owner() # 為了安全與避免觸發 Discord API 速率限制，限制只有機器人開發者能使用
+    async def hotfix(self, ctx):
+        msg = await ctx.send("🔄 開始執行熱修復程序...\n正在重新載入所有模組...")
+        
+        loaded_cogs = list(self.bot.extensions.keys())
+        success_count = 0
+        error_list = []
+        
+        for cog in loaded_cogs:
+            try:
+                await self.bot.reload_extension(cog)
+                success_count += 1
+            except Exception as e:
+                error_list.append(f"`{cog}`: {e}")
+                
+        await msg.edit(content="🔄 模組重新載入完畢，正在同步斜線指令 (這可能會花幾秒鐘)...")
+        
+        try:
+            synced = await self.bot.tree.sync()
+            sync_msg = f"✅ 成功同步了 {len(synced)} 個斜線指令！"
+        except Exception as e:
+            sync_msg = f"❌ 同步斜線指令失敗: {e}"
+            
+        embed = discord.Embed(title="🛠️ 熱修復 (Hotfix) 執行結果", color=discord.Color.green() if not error_list else discord.Color.orange())
+        embed.add_field(name="模組重新載入", value=f"成功: {success_count} / {len(loaded_cogs)}", inline=False)
+        if error_list:
+            embed.add_field(name="⚠️ 載入失敗的模組", value="\n".join(error_list)[:1024], inline=False)
+        embed.add_field(name="斜線指令", value=sync_msg, inline=False)
+        
+        await msg.edit(content=None, embed=embed)
+
 async def setup(bot):
     await bot.add_cog(Admin(bot))
