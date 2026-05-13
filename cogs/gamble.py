@@ -34,6 +34,17 @@ def calculate_hand(hand):
         aces -= 1
     return value
 
+# --- 圖片/表情符號 輔助函式 ---
+def get_card_display(card):
+    """將卡牌轉換為 Discord 自訂表情符號 (Emoji) 或維持文字顯示"""
+    # TODO: 若要使用圖片，請將 52 張牌圖片上傳至 Discord 伺服器並取得 Emoji ID
+    # 格式如： '<:spades_A:123456789012345678>'
+    card_emojis = {
+        # '♠A': '<:sA:111111111111>',
+        # '♥K': '<:hK:222222222222>',
+    }
+    return card_emojis.get(card, f"`{card}`") # 若無圖片則回傳加了反白的純文字
+
 # --- 21點 UI 面板 ---
 class BlackjackPlayView(discord.ui.View):
     """21點：遊玩與操作階段"""
@@ -44,6 +55,8 @@ class BlackjackPlayView(discord.ui.View):
         self.dealer_hand = dealer_hand
         self.deck = deck
         self.current_idx = 0
+        self.ctx = None
+        self.amount = 0
         self.message = None
 
     def get_current_player(self):
@@ -86,9 +99,10 @@ class BlackjackPlayView(discord.ui.View):
         # 莊家區塊
         if show_dealer:
             dealer_val = calculate_hand(self.dealer_hand)
-            dealer_text = f"**({dealer_val}點)** " + " ".join(self.dealer_hand)
+            dealer_cards = " ".join([get_card_display(c) for c in self.dealer_hand])
+            dealer_text = f"**({dealer_val}點)** " + dealer_cards
         else:
-            dealer_text = f"(?點) {self.dealer_hand[0]} 🎴"
+            dealer_text = f"(?點) {get_card_display(self.dealer_hand[0])} 🎴"
         embed.add_field(name="🤵 莊家", value=dealer_text, inline=False)
         
         # 玩家區塊
@@ -96,16 +110,19 @@ class BlackjackPlayView(discord.ui.View):
             val = calculate_hand(p['hand'])
             # 目前動作的玩家前面加上箭頭標示
             status_icon = "▶️ " if i == self.current_idx and not show_dealer else "👤 "
+            hand_label = f" (手牌 {p['split_idx']})" if 'split_idx' in p else ""
             
-            hand_str = " ".join(p['hand'])
+            hand_str = " ".join([get_card_display(c) for c in p['hand']])
             if p['status'] == 'bust':
                 status_str = "💥 爆牌"
+            elif p['status'] == 'surrender':
+                status_str = "🏳️ 投降"
             elif val == 21 and len(p['hand']) == 2:
                 status_str = "🌟 黑傑克"
             else:
                 status_str = f"{val}點"
                 
-            embed.add_field(name=f"{status_icon}{p['user'].display_name}", 
+            embed.add_field(name=f"{status_icon}{p['user'].display_name}{hand_label}", 
                             value=f"牌：{hand_str} | {status_str}\n賭注：`{p['bet']}`", inline=False)
             
         if not show_dealer:
@@ -160,6 +177,48 @@ class BlackjackPlayView(discord.ui.View):
         await interaction.response.defer()
         await self.update_ui(interaction)
 
+    @discord.ui.button(label="✂️ 分牌", style=discord.ButtonStyle.blurple)
+    async def split_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        p = self.get_current_player()
+        if interaction.user.id != p['user'].id:
+            return await interaction.response.send_message("❌ 還沒輪到你喔！", ephemeral=True)
+        if len(p['hand']) != 2:
+            return await interaction.response.send_message("❌ 只有剛發完兩張牌時才能分牌喔！", ephemeral=True)
+            
+        rank1, rank2 = p['hand'][0][1:], p['hand'][1][1:]
+        val1 = 10 if rank1 in ['J', 'Q', 'K'] else (11 if rank1 == 'A' else int(rank1))
+        val2 = 10 if rank2 in ['J', 'Q', 'K'] else (11 if rank2 == 'A' else int(rank2))
+        if val1 != val2:
+            return await interaction.response.send_message("❌ 兩張牌點數相同才能分牌喔！", ephemeral=True)
+            
+        bal = await self.cog.bot.db.get_balance(p['user'].id)
+        if bal < p['bet']:
+            return await interaction.response.send_message("❌ 你的餘額不夠分牌下注囉！", ephemeral=True)
+            
+        await self.cog.bot.db.update_balance(p['user'].id, -p['bet'])
+        
+        card1, card2 = p['hand'][0], p['hand'][1]
+        p['hand'] = [card1, self.deck.pop()]
+        if 'split_idx' not in p: p['split_idx'] = 1
+            
+        new_hand = {'user': p['user'], 'hand': [card2, self.deck.pop()], 'status': 'playing', 'bet': p['bet'], 'split_idx': p['split_idx'] + 1}
+        self.players.insert(self.current_idx + 1, new_hand)
+        
+        await interaction.response.defer()
+        await self.update_ui(interaction)
+
+    @discord.ui.button(label="🏳️ 投降", style=discord.ButtonStyle.danger)
+    async def surrender_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        p = self.get_current_player()
+        if interaction.user.id != p['user'].id:
+            return await interaction.response.send_message("❌ 還沒輪到你喔！", ephemeral=True)
+        if len(p['hand']) != 2:
+            return await interaction.response.send_message("❌ 只有剛發完頭兩張牌時才能投降喔！", ephemeral=True)
+        p['status'] = 'surrender'
+        self.current_idx += 1
+        await interaction.response.defer()
+        await self.update_ui(interaction)
+
     async def dealer_turn(self, interaction):
         self.stop()
         for child in self.children:
@@ -184,6 +243,11 @@ class BlackjackPlayView(discord.ui.View):
             if p['status'] == 'bust':
                 await self.cog.update_gamble_profit(p['user'].id, -p['bet'])
                 result_texts.append(f"❌ {mention_name} 爆牌了，損失 `{p['bet']}` 金幣。")
+            elif p['status'] == 'surrender':
+                half_bet = int(p['bet'] / 2)
+                await self.cog.bot.db.update_balance(p['user'].id, half_bet)
+                await self.cog.update_gamble_profit(p['user'].id, half_bet - p['bet'])
+                result_texts.append(f"🏳️ {mention_name} 選擇投降，退回一半賭注 (`{half_bet}` 金幣)。")
             else:
                 is_bj = val == 21 and len(p['hand']) == 2 and not p.get('split_idx')
                 dealer_is_bj = dealer_val == 21 and len(self.dealer_hand) == 2
@@ -211,6 +275,25 @@ class BlackjackPlayView(discord.ui.View):
         embed.add_field(name="──────────\n📊 結算結果", value="\n".join(result_texts), inline=False)
         embed.set_footer(text="遊戲結束！想玩的話可以自己開一桌喔。")
         
+        # 加入「再來一局」按鈕 (限房主)
+        if self.ctx:
+            play_again_btn = discord.ui.Button(label="🔄 再開一桌", style=discord.ButtonStyle.success)
+            
+            async def play_again_callback(inter: discord.Interaction):
+                if inter.user.id != self.ctx.author.id:
+                    return await inter.response.send_message("❌ 只有原房主可以重新開桌喔！", ephemeral=True)
+                
+                bal = await self.cog.bot.db.get_balance(self.ctx.author.id)
+                if bal < self.amount:
+                    return await inter.response.send_message(f"❌ 你的餘額不足以再開一桌！(需要 **{self.amount:,}** 金幣)", ephemeral=True)
+                
+                play_again_btn.disabled = True
+                await inter.response.edit_message(view=self)
+                await self.cog.blackjack.callback(self.cog, self.ctx, self.amount)
+                
+            play_again_btn.callback = play_again_callback
+            self.add_item(play_again_btn)
+
         if interaction:
             try:
                 await interaction.message.edit(embed=embed, view=self)
@@ -220,12 +303,13 @@ class BlackjackPlayView(discord.ui.View):
 
 class BlackjackLobbyView(discord.ui.View):
     """21點：大廳招募階段"""
-    def __init__(self, cog, host, bet_amount):
+    def __init__(self, cog, ctx, bet_amount):
         super().__init__(timeout=45) # 給大家 45 秒可以坐下
         self.cog = cog
-        self.host = host
+        self.ctx = ctx
+        self.host = ctx.author
         self.bet_amount = bet_amount
-        self.participants = {host.id: {'user': host, 'hand': [], 'status': 'playing', 'bet': bet_amount}}
+        self.participants = {self.host.id: {'user': self.host, 'hand': [], 'status': 'playing', 'bet': bet_amount}}
         self.message = None
 
     async def on_timeout(self):
@@ -268,6 +352,8 @@ class BlackjackLobbyView(discord.ui.View):
             p['hand'] = [deck.pop(), deck.pop()]
             
         play_view = BlackjackPlayView(self.cog, self.participants, dealer_hand, deck)
+        play_view.ctx = self.ctx
+        play_view.amount = self.bet_amount
         play_view.message = self.message
         
         if interaction:
@@ -521,7 +607,7 @@ class Gamble(commands.Cog):
         )
         embed.set_footer(text="點擊按鈕入座！發起人可以隨時點擊開始發牌。")
         
-        view = BlackjackLobbyView(self, ctx.author, amount)
+        view = BlackjackLobbyView(self, ctx, amount)
         msg = await ctx.send(embed=embed, view=view)
         view.message = msg
 

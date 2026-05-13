@@ -28,7 +28,7 @@ class BugReportPanelView(discord.ui.View):
         category = interaction.channel.category
         bug_channel = await guild.create_text_channel(name=channel_name, category=category, overwrites=overwrites)
         
-        embed = discord.Embed(title="🐛 問題回報", description=f"嗨 {interaction.user.mention}！\n遇到了什麼問題嗎？請盡量詳細描述發生的情況，我會將紀錄轉交給管理員！", color=discord.Color.red())
+        embed = discord.Embed(title="🐛 問題回報", description=f"嗨 {interaction.user.mention}！\n遇到了什麼問題嗎？請盡量詳細描述發生的情況，我會將紀錄轉交給62！", color=discord.Color.red())
         # 傳送歡迎訊息，並附上關閉按鈕
         await bug_channel.send(content=f"{interaction.user.mention}", embed=embed, view=BugReportCloseView())
         

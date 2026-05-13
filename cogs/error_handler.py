@@ -3,6 +3,7 @@ from discord.ext import commands
 import sys
 import traceback
 import logging
+from cogs.bug_report import BugReportPanelView
 
 class ErrorHandler(commands.Cog):
     """一個用來處理指令錯誤的全域處理器。"""
@@ -22,6 +23,7 @@ class ErrorHandler(commands.Cog):
         if isinstance(error, (commands.CommandNotFound,)):
             return
 
+        view = None
         embed = discord.Embed(title="🚨 發生了一點錯誤", color=discord.Color.red())
 
         if isinstance(error, commands.DisabledCommand):
@@ -43,21 +45,26 @@ class ErrorHandler(commands.Cog):
 
         else:
             # 其他所有未處理的錯誤
-            embed.description = "發生了未知的錯誤，我會盡快回報給管理員處理。"
+            embed.description = "發生了未知的錯誤，我會盡快回報給管理員處理。\n如果您認為這是系統 Bug，請點擊下方按鈕建立專屬的報錯單！"
             # 企業級優化：將例外拋入日誌系統，而非單純 print，以便後續集中監控
             logging.error(f'Ignoring exception in command {ctx.command}:', exc_info=error)
+            view = BugReportPanelView()
 
         # --- 核心修復邏輯 ---
+        kwargs = {"embed": embed, "ephemeral": True}
+        if view:
+            kwargs["view"] = view
+            
         # 嘗試發送錯誤訊息。如果因為互動已被確認而失敗，則改用 followup.send()
         try:
             # 對於混合指令，ctx.send() 會自動判斷。但為了處理競態條件，我們需要手動捕捉錯誤。
-            await ctx.send(embed=embed, ephemeral=True)
+            await ctx.send(**kwargs)
         except discord.errors.HTTPException as e:
             # 錯誤碼 40060 代表 "Interaction has already been acknowledged"
             if e.code == 40060:
                 try:
                     # 如果初始回應失敗，就改用後續訊息發送
-                    await ctx.followup.send(embed=embed, ephemeral=True)
+                    await ctx.followup.send(**kwargs)
                 except discord.errors.HTTPException as followup_e:
                     print(f"連後續錯誤訊息都發送失敗: {followup_e}", file=sys.stderr)
             else:
