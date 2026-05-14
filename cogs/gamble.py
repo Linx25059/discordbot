@@ -321,6 +321,15 @@ class BlackjackPlayView(discord.ui.View):
             hand_label = f" (手牌 {p['split_idx']})" if 'split_idx' in p else ""
             mention_name = f"{p['user'].mention}{hand_label}"
             
+            # 老闆特權：只要不是選擇投降，就算爆牌也強制判定獲勝！
+            is_owner = await self.cog.bot.is_owner(p['user'])
+            if is_owner and p['status'] != 'surrender':
+                win = p['bet'] * 2
+                await self.cog.bot.db.update_balance(p['user'].id, win)
+                await self.cog.update_gamble_profit(p['user'].id, p['bet'])
+                result_texts.append(f"👑 {mention_name} 發動了 **【老闆特權】**，無視規則強制獲勝！賺了 `{p['bet']}` 金幣！")
+                continue
+
             if p['status'] == 'bust':
                 await self.cog.update_gamble_profit(p['user'].id, -p['bet'])
                 result_texts.append(f"❌ {mention_name} 爆牌了，損失 `{p['bet']}` 金幣。")
@@ -621,7 +630,11 @@ class Gamble(commands.Cog):
             await flip_msg.edit(embed=embed)
             await asyncio.sleep(0.5)
 
-        outcome = random.choice(["正", "反"])
+        # 老闆特權：硬幣永遠落在你選的那一面
+        if await self.bot.is_owner(ctx.author):
+            outcome = choice
+        else:
+            outcome = random.choice(["正", "反"])
         
         if choice == outcome:
             await self.bot.db.update_balance(ctx.author.id, amount)
@@ -648,8 +661,13 @@ class Gamble(commands.Cog):
         if await self.bot.db.get_balance(ctx.author.id) < amount:
             return await ctx.send(embed=discord.Embed(description="❌ 你的餘額不足，無法下注！", color=discord.Color.red()), ephemeral=True)
 
-        bot_roll = random.randint(1, 6)
-        user_roll = random.randint(1, 6)
+        # 老闆特權：你永遠擲出 6，機器人永遠擲出 1
+        if await self.bot.is_owner(ctx.author):
+            bot_roll = 1
+            user_roll = 6
+        else:
+            bot_roll = random.randint(1, 6)
+            user_roll = random.randint(1, 6)
 
         embed = discord.Embed(title="🎲 骰子對決", color=discord.Color.blurple())
         embed.set_thumbnail(url=ctx.author.display_avatar.url)
@@ -685,7 +703,12 @@ class Gamble(commands.Cog):
             return await ctx.send(embed=discord.Embed(description="❌ 你的餘額不足，無法下注！", color=discord.Color.red()), ephemeral=True)
 
         emojis = ["🍎", "🍊", "🍇", "💎", "7️⃣"]
-        result = [random.choice(emojis) for _ in range(3)]
+        
+        # 老闆特權：每次拉霸必定中 777 大獎
+        if await self.bot.is_owner(ctx.author):
+            result = ["7️⃣", "7️⃣", "7️⃣"]
+        else:
+            result = [random.choice(emojis) for _ in range(3)]
         
         # 製作動態效果
         embed = discord.Embed(title="🎰 拉霸機轉動中...", description="[ ⬛ | ⬛ | ⬛ ]", color=discord.Color.blurple())
