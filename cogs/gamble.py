@@ -45,7 +45,13 @@ def get_card_display(card):
         # '♠A': '<:sA:111111111111>',
         # '♥K': '<:hK:222222222222>',
     }
-    return card_emojis.get(card, f"`{card}`") # 若無圖片則回傳加了反白的純文字
+    
+    if card in card_emojis:
+        return card_emojis[card]
+        
+    suit = card
+    rank = card[1:]
+    return f"` {suit} {rank:<2} `" # 使用 inline code block 讓寬度固定，看起來更像實體牌
 
 # --- 重新下注 Modal ---
 class RebetModal(discord.ui.Modal, title='💸 重新下注'):
@@ -106,7 +112,7 @@ class BlackjackRebetModal(discord.ui.Modal, title='💸 重新下注開桌'):
         super().__init__(timeout=180)
         self.original_view = original_view
         self.cog = original_view.cog
-        self.ctx = original_view.ctx
+        self.host = original_view.host
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
@@ -139,8 +145,8 @@ class BlackjackRebetModal(discord.ui.Modal, title='💸 重新下注開桌'):
         await interaction.response.send_message(f"✅ 已用新賭注 **{amount:,}** 金幣重新開桌！", ephemeral=True)
         
         try:
-            self.ctx.interaction = None
-            await self.cog.blackjack.callback(self.cog, self.ctx, amount)
+            # 徹底脫離原先的 ctx，直接透過 channel 發送全新的一局，避開 interaction 超時限制
+            await self.cog.start_blackjack_lobby(interaction.channel, self.host, amount)
         except Exception as e:
             from cogs.bug_report import BugReportPanelView
             embed = discord.Embed(title="🚨 重新開桌發生錯誤", description=f"```py\n{e}\n```", color=discord.Color.red())
@@ -149,15 +155,15 @@ class BlackjackRebetModal(discord.ui.Modal, title='💸 重新下注開桌'):
 # --- 21點 UI 面板 ---
 class BlackjackPlayView(discord.ui.View):
     """21點：遊玩與操作階段"""
-    def __init__(self, cog, participants, dealer_hand, deck):
+    def __init__(self, cog, participants, dealer_hand, deck, host, amount):
         super().__init__(timeout=60) # 每個玩家有 60 秒可以考慮
         self.cog = cog
         self.players = list(participants.values())
         self.dealer_hand = dealer_hand
         self.deck = deck
         self.current_idx = 0
-        self.ctx = None
-        self.amount = 0
+        self.host = host
+        self.amount = amount
         self.message = None
 
     def get_current_player(self):
@@ -200,35 +206,43 @@ class BlackjackPlayView(discord.ui.View):
         # 莊家區塊
         if show_dealer:
             dealer_val = calculate_hand(self.dealer_hand)
-            dealer_cards = " ".join([get_card_display(c) for c in self.dealer_hand])
-            dealer_text = f"**({dealer_val}點)** " + dealer_cards
+            dealer_cards = "  ".join([get_card_display(c) for c in self.dealer_hand])
+            dealer_text = f"**點數：** `{dealer_val}`\n**手牌：** {dealer_cards}"
         else:
-            dealer_text = f"(?點) {get_card_display(self.dealer_hand[0])} 🎴"
-        embed.add_field(name="🤵 莊家", value=dealer_text, inline=False)
+            dealer_text = f"**點數：** ` ? `\n**手牌：** {get_card_display(self.dealer_hand)}  ` 🎴 `"
+            
+        embed.add_field(name="🤵 莊家 (Dealer)", value=dealer_text, inline=False)
+        embed.add_field(name="━" * 15, value="\u200b", inline=False) # 視覺分隔線
         
         # 玩家區塊
         for i, p in enumerate(self.players):
             val = calculate_hand(p['hand'])
-            # 目前動作的玩家前面加上箭頭標示
-            status_icon = "▶️ " if i == self.current_idx and not show_dealer else "👤 "
-            hand_label = f" (手牌 {p['split_idx']})" if 'split_idx' in p else ""
             
-            hand_str = " ".join([get_card_display(c) for c in p['hand']])
+            # 目前動作的玩家高亮顯示
+            is_current = (i == self.current_idx and not show_dealer)
+            status_icon = "🟢" if is_current else "👤"
+            hand_label = f" (分牌 {p['split_idx']})" if 'split_idx' in p else ""
+            
+            hand_str = "  ".join([get_card_display(c) for c in p['hand']])
+            
             if p['status'] == 'bust':
-                status_str = "💥 爆牌"
+                status_str = "💥 **爆牌 (Bust)**"
             elif p['status'] == 'surrender':
-                status_str = "🏳️ 投降"
+                status_str = "🏳️ **投降 (Surrender)**"
             elif val == 21 and len(p['hand']) == 2:
-                status_str = "🌟 黑傑克"
+                status_str = "🌟 **黑傑克 (Blackjack!)**"
+            elif p['status'] == 'stand':
+                status_str = f"🛑 **停牌 ({val}點)**"
             else:
-                status_str = f"{val}點"
+                status_str = f"🎲 **{val}點**"
                 
-            embed.add_field(name=f"{status_icon}{p['user'].display_name}{hand_label}", 
-                            value=f"牌：{hand_str} | {status_str}\n賭注：`{p['bet']}`", inline=False)
+            player_info = f"**狀態：** {status_str}\n**手牌：** {hand_str}\n**賭注：** `{p['bet']}`"
+            embed.add_field(name=f"{status_icon} {p['user'].display_name}{hand_label}", value=player_info, inline=False)
             
         if not show_dealer:
             p = self.get_current_player()
-            embed.set_footer(text=f"👉 現在輪到 {p['user'].display_name} 動作！(60秒未動作自動停牌)")
+            if p:
+                embed.set_footer(text=f"👉 現在輪到 {p['user'].display_name} 動作！(60秒未動作自動停牌)")
         return embed
 
     @discord.ui.button(label="👆 補牌", style=discord.ButtonStyle.primary)
@@ -386,14 +400,14 @@ class BlackjackPlayView(discord.ui.View):
         embed.set_footer(text="遊戲結束！想玩的話可以自己開一桌喔。")
         
         # 加入「再來一局」按鈕 (限房主)
-        if self.ctx:
+        if self.host:
             play_again_btn = discord.ui.Button(label="🔄 再開一桌", style=discord.ButtonStyle.success)
             
             async def play_again_callback(inter: discord.Interaction):
-                if inter.user.id != self.ctx.author.id:
+                if inter.user.id != self.host.id:
                     return await inter.response.send_message("❌ 只有原房主可以重新開桌喔！", ephemeral=True)
                 
-                bal = await self.cog.bot.db.get_balance(self.ctx.author.id)
+                bal = await self.cog.bot.db.get_balance(self.host.id)
                 if bal < self.amount:
                     return await inter.response.send_message(f"❌ 你的餘額不足以再開一桌！(需要 **{self.amount:,}** 金幣)", ephemeral=True)
                 
@@ -402,8 +416,7 @@ class BlackjackPlayView(discord.ui.View):
                 await inter.response.edit_message(view=self)
                 
                 try:
-                    self.ctx.interaction = None
-                    await self.cog.blackjack.callback(self.cog, self.ctx, self.amount)
+                    await self.cog.start_blackjack_lobby(inter.channel, self.host, self.amount)
                 except Exception as e:
                     from cogs.bug_report import BugReportPanelView
                     embed = discord.Embed(title="🚨 再玩一局發生錯誤", description=f"```py\n{e}\n```", color=discord.Color.red())
@@ -414,7 +427,7 @@ class BlackjackPlayView(discord.ui.View):
 
             rebet_btn = discord.ui.Button(label="💸 重新下注", style=discord.ButtonStyle.secondary)
             async def rebet_callback(inter: discord.Interaction):
-                if inter.user.id != self.ctx.author.id:
+                if inter.user.id != self.host.id:
                     return await inter.response.send_message("❌ 只有原房主可以重新開桌喔！", ephemeral=True)
                 
                 await inter.response.send_modal(BlackjackRebetModal(self))
@@ -430,11 +443,11 @@ class BlackjackPlayView(discord.ui.View):
 
 class BlackjackLobbyView(discord.ui.View):
     """21點：大廳招募階段"""
-    def __init__(self, cog, ctx, bet_amount):
+    def __init__(self, cog, channel, host, bet_amount):
         super().__init__(timeout=45) # 給大家 45 秒可以坐下
         self.cog = cog
-        self.ctx = ctx
-        self.host = ctx.author
+        self.channel = channel
+        self.host = host
         self.bet_amount = bet_amount
         self.participants = {self.host.id: {'user': self.host, 'hand': [], 'status': 'playing', 'bet': bet_amount}}
         self.message = None
@@ -478,9 +491,7 @@ class BlackjackLobbyView(discord.ui.View):
         for p in self.participants.values():
             p['hand'] = [deck.pop(), deck.pop()]
             
-        play_view = BlackjackPlayView(self.cog, self.participants, dealer_hand, deck)
-        play_view.ctx = self.ctx
-        play_view.amount = self.bet_amount
+        play_view = BlackjackPlayView(self.cog, self.participants, dealer_hand, deck, self.host, self.bet_amount)
         play_view.message = self.message
         
         if interaction:
@@ -732,23 +743,45 @@ class Gamble(commands.Cog):
         view = PlayAgainView(self.betdice.callback, self, ctx, amount)
         await ctx.send(embed=embed, view=view)
 
-    @commands.hybrid_command(name="slots", aliases=["老虎機", "拉霸"], help="玩拉霸機")
-    async def slots(self, ctx, amount: int):
+    @commands.hybrid_command(name="slots", aliases=["老虎機", "拉霸"], help="玩拉霸機 (可自訂賠率倍數)")
+    @app_commands.describe(amount="下注金額", multiplier="自訂額外賠率倍數 (預設 1.0 倍，倍率越高越難中)")
+    async def slots(self, ctx, amount: int, *, multiplier: float = 1.0):
         if amount <= 0:
             return await ctx.send(embed=discord.Embed(description="❌ 下注金額必須大於 0 喔！", color=discord.Color.red()), ephemeral=True)
+        if multiplier < 1.0 or multiplier > 100.0:
+            return await ctx.send(embed=discord.Embed(description="❌ 倍率必須設定在 1.0 到 100.0 倍之間！", color=discord.Color.red()), ephemeral=True)
         if await self.bot.db.get_balance(ctx.author.id) < amount:
             return await ctx.send(embed=discord.Embed(description="❌ 你的餘額不足，無法下注！", color=discord.Color.red()), ephemeral=True)
 
         emojis = ["🍎", "🍊", "🍇", "💎", "7️⃣"]
         
-        # 老闆特權：每次拉霸必定中 777 大獎
+        # 根據倍率調整勝率 (保持數學期望值一致)
+        chance_777 = 0.8 / multiplier
+        chance_3 = 3.2 / multiplier
+        chance_2 = 48.0 / multiplier
+        
+        roll = random.uniform(0, 100)
+        
+        # 老闆特權：永遠將機率鎖定為 0.0，必定觸發 777 大獎
         if await self.bot.is_owner(ctx.author):
+            roll = 0.0
+            
+        if roll < chance_777:
             result = ["7️⃣", "7️⃣", "7️⃣"]
+        elif roll < chance_777 + chance_3:
+            e = random.choice(["🍎", "🍊", "🍇", "💎"])
+            result = [e, e, e]
+        elif roll < chance_777 + chance_3 + chance_2:
+            e = random.choice(emojis)
+            other = random.choice([x for x in emojis if x != e])
+            result = [e, e, other]
+            random.shuffle(result)
         else:
-            result = [random.choice(emojis) for _ in range(3)]
+            result = random.sample(emojis, 3) # 隨機抽出 3 個不一樣的水果
         
         # 製作動態效果
-        embed = discord.Embed(title="🎰 拉霸機轉動中...", description="[ ⬛ | ⬛ | ⬛ ]", color=discord.Color.blurple())
+        mult_text = f" (倍率: {multiplier:.1f}x)" if multiplier != 1.0 else ""
+        embed = discord.Embed(title=f"🎰 拉霸機轉動中...{mult_text}", description="[ ⬛ | ⬛ | ⬛ ]", color=discord.Color.blurple())
         slot_msg = await ctx.send(embed=embed)
         
         # 動態更新三次模擬轉動效果
@@ -760,24 +793,26 @@ class Gamble(commands.Cog):
         
         # 結算
         if result[0] == result[1] == result[2]:
-            multiplier = 10 if result[0] == "7️⃣" else 5
-            winnings = amount * multiplier
+            base_mult = 10 if result[0] == "7️⃣" else 5
+            final_mult = base_mult * multiplier
+            winnings = int(amount * final_mult)
             await self.bot.db.update_balance(ctx.author.id, winnings - amount)
             await self.update_gamble_profit(ctx.author.id, winnings - amount)
             ach_msg = await self.check_win_achievement(ctx, winnings - amount)
             
             embed.title = "🎰 恭喜中大獎！"
-            embed.description = f"**[ {result[0]} | {result[1]} | {result[2]} ]**\n\n🎉 恭喜贏得 **{winnings:,}** 金幣！ (x{multiplier}){ach_msg}"
+            embed.description = f"**[ {result[0]} | {result[1]} | {result[2]} ]**\n\n🎉 恭喜贏得 **{winnings:,}** 金幣！ (x{final_mult:g}){ach_msg}"
             embed.color = discord.Color.gold()
             
         elif result[0] == result[1] or result[1] == result[2] or result[0] == result[2]:
-            winnings = amount * 2
+            final_mult = 2 * multiplier
+            winnings = int(amount * final_mult)
             await self.bot.db.update_balance(ctx.author.id, winnings - amount)
             await self.update_gamble_profit(ctx.author.id, winnings - amount)
             ach_msg = await self.check_win_achievement(ctx, winnings - amount)
             
             embed.title = "🎰 中小獎了！"
-            embed.description = f"**[ {result[0]} | {result[1]} | {result[2]} ]**\n\n✨ 贏得了 **{winnings:,}** 金幣！ (x2){ach_msg}"
+            embed.description = f"**[ {result[0]} | {result[1]} | {result[2]} ]**\n\n✨ 贏得了 **{winnings:,}** 金幣！ (x{final_mult:g}){ach_msg}"
             embed.color = discord.Color.green()
             
         else:
@@ -791,8 +826,79 @@ class Gamble(commands.Cog):
             
         embed.set_footer(text=f"💰 目前餘額: {await self.bot.db.get_balance(ctx.author.id):,} 金幣")
         
-        view = PlayAgainView(self.slots.callback, self, ctx, amount)
+        # 完美支援面板「再玩一次、雙倍下注」等功能，並記住使用者設定的倍率
+        view = PlayAgainView(self.slots.callback, self, ctx, amount, multiplier=multiplier)
         await slot_msg.edit(embed=embed, view=view)
+
+    @commands.hybrid_command(name="highroll", aliases=["高賠率", "拼運氣", "自訂賠率"], help="自訂賠率的高風險賭博！勝率由你決定。")
+    @app_commands.describe(multiplier="設定賠率 (2.0 ~ 100.0 倍)", amount="下注金額")
+    async def highroll(self, ctx: commands.Context, multiplier: float, amount: int):
+        if amount <= 0:
+            return await ctx.send(embed=discord.Embed(description="❌ 下注金額必須大於 0 喔！", color=discord.Color.red()), ephemeral=True)
+        if multiplier < 2.0 or multiplier > 100.0:
+            return await ctx.send(embed=discord.Embed(description="❌ 賠率必須設定在 2.0 到 100.0 倍之間！", color=discord.Color.red()), ephemeral=True)
+        if await self.bot.db.get_balance(ctx.author.id) < amount:
+            return await ctx.send(embed=discord.Embed(description="❌ 你的餘額不足，無法下注！", color=discord.Color.red()), ephemeral=True)
+
+        # 計算目標勝率 (例如 10倍 就是 10% 勝率)
+        chance = 100.0 / multiplier
+        
+        embed = discord.Embed(title="🚀 高賠率挑戰", description=f"設定賠率：**{multiplier:.1f} 倍**\n目標數字：小於 **{chance:.2f}**\n🎲 骰子滾動中...", color=discord.Color.blurple())
+        embed.set_thumbnail(url=ctx.author.display_avatar.url)
+        roll_msg = await ctx.send(embed=embed)
+        
+        # 動態更新三次模擬滾動效果
+        for _ in range(3):
+            temp_roll = random.uniform(0, 100)
+            embed.description = f"設定賠率：**{multiplier:.1f} 倍**\n目標數字：小於 **{chance:.2f}**\n🎲 快速滾動中... `[{temp_roll:.2f}]`"
+            await roll_msg.edit(embed=embed)
+            await asyncio.sleep(0.5)
+
+        roll = random.uniform(0, 100)
+        
+        # 老闆特權：永遠擲出比勝率小一點點的幸運數字，無視機率保證必中
+        if await self.bot.is_owner(ctx.author):
+            roll = chance * 0.99
+            
+        if roll <= chance:
+            winnings = int(amount * multiplier)
+            profit = winnings - amount
+            await self.bot.db.update_balance(ctx.author.id, profit)
+            await self.update_gamble_profit(ctx.author.id, profit)
+            ach_msg = await self.check_win_achievement(ctx, profit)
+            
+            embed.color = discord.Color.green()
+            embed.description = f"設定賠率：**{multiplier:.1f} 倍**\n目標數字：小於 **{chance:.2f}**\n🎲 最終擲出：`[{roll:.2f}]`\n\n🎉 恭喜達標！贏得了 **{winnings:,}** 金幣！{ach_msg}"
+        else:
+            await self.bot.db.update_balance(ctx.author.id, -amount)
+            await self.update_gamble_profit(ctx.author.id, -amount)
+            ach_msg = await self.check_loss_achievement(ctx, amount)
+            
+            embed.color = discord.Color.red()
+            embed.description = f"設定賠率：**{multiplier:.1f} 倍**\n目標數字：小於 **{chance:.2f}**\n🎲 最終擲出：`[{roll:.2f}]`\n\n💥 運氣不佳，沒有小於目標數字，損失了 **{amount:,}** 金幣。{ach_msg}"
+
+        embed.set_footer(text=f"💰 目前餘額: {await self.bot.db.get_balance(ctx.author.id):,} 金幣")
+        
+        # 完美支援原有的「再玩一次、重新下注、倍壓」面板
+        view = PlayAgainView(self.highroll.callback, self, ctx, multiplier, amount)
+        await roll_msg.edit(embed=embed, view=view)
+
+    async def start_blackjack_lobby(self, channel, host, amount):
+        """獨立的 21 點牌桌發起器，完美避開指令逾時問題"""
+        await self.bot.db.update_balance(host.id, -amount)
+
+        embed = discord.Embed(title="🃏 皇家 21 點 - 招募牌咖中", color=discord.Color.dark_green())
+        embed.description = (
+            f"💰 **固定賭注：** `{amount}` 金幣\n"
+            f"👥 **目前玩家：** `1/5` 人\n"
+            "──────────────────\n"
+            f"👤 {host.mention}"
+        )
+        embed.set_footer(text="點擊按鈕入座！發起人可以隨時點擊開始發牌。")
+        
+        view = BlackjackLobbyView(self, channel, host, amount)
+        msg = await channel.send(embed=embed, view=view)
+        view.message = msg
 
     @commands.hybrid_command(name="blackjack", aliases=["bj", "21點"], help="開啟一桌多人 21 點牌桌！")
     @app_commands.describe(amount="每位玩家加入牌桌的固定賭注")
@@ -802,21 +908,11 @@ class Gamble(commands.Cog):
         if await self.bot.db.get_balance(ctx.author.id) < amount:
             return await ctx.send(embed=discord.Embed(description=f"❌ 你的餘額不足以開桌！需要 **{amount:,}** 金幣。", color=discord.Color.red()), ephemeral=True)
 
-        # 扣款
-        await self.bot.db.update_balance(ctx.author.id, -amount)
-
-        embed = discord.Embed(title="🃏 皇家 21 點 - 招募牌咖中", color=discord.Color.dark_green())
-        embed.description = (
-            f"💰 **固定賭注：** `{amount}` 金幣\n"
-            f"👥 **目前玩家：** `1/5` 人\n"
-            "──────────────────\n"
-            f"👤 {ctx.author.mention}"
-        )
-        embed.set_footer(text="點擊按鈕入座！發起人可以隨時點擊開始發牌。")
-        
-        view = BlackjackLobbyView(self, ctx, amount)
-        msg = await ctx.send(embed=embed, view=view)
-        view.message = msg
+        # 若為斜線指令，先回覆並關閉互動，後續使用一般訊息發送
+        if ctx.interaction:
+            await ctx.send("🃏 **牌桌準備中...**", ephemeral=True, delete_after=3.0)
+            
+        await self.start_blackjack_lobby(ctx.channel, ctx.author, amount)
 
     @commands.hybrid_command(name="gambleboard", aliases=["賭神榜", "賭場排行"], help="查看賭場中累積淨賺最多金幣的排行榜")
     async def gambleboard(self, ctx):
