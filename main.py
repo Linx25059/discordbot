@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv, set_key, find_dotenv
 from utils.db_manager import DatabaseManager
 import logging
 import traceback
@@ -91,6 +91,20 @@ async def sync_commands(ctx, scope: str = ""):
             await ctx.send(f"✅ 全域同步完成！已更新 {len(synced)} 個指令。\n⚠️ **注意**：全域同步最多可能需要 1 小時才會完全生效。若急需測試，請使用 `!sync here`。")
     except Exception as e:
         await ctx.send(f"❌ 同步失敗：{e}")
+
+@bot.command(name="update_env", help="【開發者專用】更新或新增 .env 檔案中的環境變數")
+@commands.is_owner()
+async def update_env(ctx, key: str, value: str):
+    dotenv_path = find_dotenv()
+    if not dotenv_path:
+        # 如果找不到 .env 檔案，就在當前目錄預設建立一個
+        dotenv_path = '.env'
+        
+    # 將新的鍵值對寫入 .env 檔案，並同步更新當下 os.environ 環境變數
+    set_key(dotenv_path, key, value)
+    os.environ[key] = value
+    
+    await ctx.send(f"✅ 已成功將環境變數 `{key}` 更新並永久儲存至 `.env` 檔案中！")
 
 if __name__ == "__main__":
     bot.run(TOKEN)
