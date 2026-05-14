@@ -85,8 +85,14 @@ class RebetModal(discord.ui.Modal, title='💸 重新下注'):
         new_args = list(self.original_view.args)
         new_args[-1] = amount
         
-        # 呼叫原指令
-        await self.original_view.command_coro(self.original_view.cog, self.original_view.ctx, *new_args, **self.original_view.kwargs)
+        try:
+            # 解決斜線指令過期問題：將 interaction 設為 None，強制使用不受時效限制的頻道發送
+            self.original_view.ctx.interaction = None
+            await self.original_view.command_coro(self.original_view.cog, self.original_view.ctx, *new_args, **self.original_view.kwargs)
+        except Exception as e:
+            from cogs.bug_report import BugReportPanelView
+            embed = discord.Embed(title="🚨 重新下注發生錯誤", description=f"```py\n{e}\n```", color=discord.Color.red())
+            await interaction.followup.send(embed=embed, view=BugReportPanelView(), ephemeral=True)
 
 class BlackjackRebetModal(discord.ui.Modal, title='💸 重新下注開桌'):
     new_amount_input = discord.ui.TextInput(
@@ -132,8 +138,13 @@ class BlackjackRebetModal(discord.ui.Modal, title='💸 重新下注開桌'):
         # 回應 Modal
         await interaction.response.send_message(f"✅ 已用新賭注 **{amount:,}** 金幣重新開桌！", ephemeral=True)
         
-        # 呼叫 21 點指令
-        await self.cog.blackjack.callback(self.cog, self.ctx, amount)
+        try:
+            self.ctx.interaction = None
+            await self.cog.blackjack.callback(self.cog, self.ctx, amount)
+        except Exception as e:
+            from cogs.bug_report import BugReportPanelView
+            embed = discord.Embed(title="🚨 重新開桌發生錯誤", description=f"```py\n{e}\n```", color=discord.Color.red())
+            await interaction.followup.send(embed=embed, view=BugReportPanelView(), ephemeral=True)
 
 # --- 21點 UI 面板 ---
 class BlackjackPlayView(discord.ui.View):
@@ -389,7 +400,14 @@ class BlackjackPlayView(discord.ui.View):
                 for child in self.children:
                     child.disabled = True
                 await inter.response.edit_message(view=self)
-                await self.cog.blackjack.callback(self.cog, self.ctx, self.amount)
+                
+                try:
+                    self.ctx.interaction = None
+                    await self.cog.blackjack.callback(self.cog, self.ctx, self.amount)
+                except Exception as e:
+                    from cogs.bug_report import BugReportPanelView
+                    embed = discord.Embed(title="🚨 再玩一局發生錯誤", description=f"```py\n{e}\n```", color=discord.Color.red())
+                    await inter.followup.send(embed=embed, view=BugReportPanelView(), ephemeral=True)
                 
             play_again_btn.callback = play_again_callback
             self.add_item(play_again_btn)
@@ -494,8 +512,13 @@ class PlayAgainView(discord.ui.View):
             child.disabled = True
         await interaction.response.edit_message(view=self)
         
-        # 重新呼叫該遊戲的核心邏輯 (會自動在最下方發送一場新賭局)
-        await self.command_coro(self.cog, self.ctx, *self.args, **self.kwargs)
+        try:
+            self.ctx.interaction = None
+            await self.command_coro(self.cog, self.ctx, *self.args, **self.kwargs)
+        except Exception as e:
+            from cogs.bug_report import BugReportPanelView
+            embed = discord.Embed(title="🚨 再玩一次發生錯誤", description=f"```py\n{e}\n```", color=discord.Color.red())
+            await interaction.followup.send(embed=embed, view=BugReportPanelView(), ephemeral=True)
 
     @discord.ui.button(label="💸 重新下注", style=discord.ButtonStyle.secondary)
     async def rebet(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -526,8 +549,13 @@ class PlayAgainView(discord.ui.View):
         new_args = list(self.args)
         new_args[-1] = new_amount
         
-        # 以兩倍賭注重新呼叫遊戲邏輯
-        await self.command_coro(self.cog, self.ctx, *new_args, **self.kwargs)
+        try:
+            self.ctx.interaction = None
+            await self.command_coro(self.cog, self.ctx, *new_args, **self.kwargs)
+        except Exception as e:
+            from cogs.bug_report import BugReportPanelView
+            embed = discord.Embed(title="🚨 倍壓下注發生錯誤", description=f"```py\n{e}\n```", color=discord.Color.red())
+            await interaction.followup.send(embed=embed, view=BugReportPanelView(), ephemeral=True)
 
 class Gamble(commands.Cog):
     def __init__(self, bot: commands.Bot):
