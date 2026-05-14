@@ -5,6 +5,48 @@ import urllib.parse
 import datetime
 import asyncio
 
+# --- 彈出式輸入視窗 (用來綁定地點) ---
+class WeatherBindModal(discord.ui.Modal, title='🌍 綁定預設天氣地點'):
+    location_input = discord.ui.TextInput(
+        label='請輸入你的預設地點 (例如: 台北, 高雄市, 東京)',
+        placeholder='地點名稱...',
+        required=True,
+        max_length=50
+    )
+
+    def __init__(self, cog):
+        super().__init__()
+        self.cog = cog
+
+    async def on_submit(self, interaction: discord.Interaction):
+        location = self.location_input.value.strip()
+        # 寫入資料庫
+        await self.cog.bot.db.db.execute('INSERT OR REPLACE INTO user_weather_location (user_id, location) VALUES (?, ?)', (interaction.user.id, location))
+        await self.cog.bot.db.db.commit()
+        
+        await interaction.response.send_message(f"✅ 已成功將預設地點綁定為 **{location}**！正在為你查詢...", ephemeral=True)
+        
+        # 綁定完成後自動幫使用者查一次天氣
+        embed = await self.cog.get_weather_embed(location, is_default=True)
+        if embed:
+            await interaction.channel.send(content=f"{interaction.user.mention} 查詢的預設天氣：", embed=embed)
+        else:
+            await interaction.followup.send(f"❌ 找不到 **{location}** 的天氣資訊，或伺服器連線異常，請確認有沒有打錯字！", ephemeral=True)
+
+# --- 提供綁定按鈕的 View ---
+class WeatherBindView(discord.ui.View):
+    def __init__(self, cog, author_id):
+        super().__init__(timeout=120)
+        self.cog = cog
+        self.author_id = author_id
+
+    @discord.ui.button(label="🌍 立即綁定地點", style=discord.ButtonStyle.success)
+    async def bind_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.author_id:
+            return await interaction.response.send_message("❌ 這是給別人的設定按鈕喔！請自己輸入 /weather 來綁定。", ephemeral=True)
+        # 呼叫彈出式視窗
+        await interaction.response.send_modal(WeatherBindModal(self.cog))
+
 class Weather(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -93,20 +135,59 @@ class Weather(commands.Cog):
                     elif 'weatherDesc' in current and current['weatherDesc']:
                         desc = current['weatherDesc'][0].get('value', '未知')
 
-                    title = f"🌅 早安！{location} 今日天氣" if is_daily else f"🌤️ {location} 的天氣資訊"
-                    color = discord.Color.gold() if is_daily else discord.Color.blue()
+                    # --- 動態日夜與縮圖判斷邏輯 ---
+                    # 1. 抓取日出與日落時間
+                    astronomy = weather_forecast[0].get('astronomy', [{}])[0] if weather_forecast else {}
+                    sunrise_str = astronomy.get('sunrise', '06:00 AM')
+                    sunset_str = astronomy.get('sunset', '06:00 PM')
                     
-                    embed = discord.Embed(title=title, description=f"目前天氣狀況：**{desc}**", color=color)
-                    embed.add_field(name="🌡️ 溫度", value=f"{temp}°C (體感 {feels_like}°C)", inline=True)
-                    embed.add_field(name="💧 濕度", value=f"{humidity}%", inline=True)
-                    embed.add_field(name="💨 風速", value=f"{wind} km/h", inline=True)
-                    embed.add_field(name="☔ 降雨量", value=f"{precip} mm", inline=True)
+                    try:
+                        sunrise_time = datetime.datetime.strptime(sunrise_str, '%I:%M %p').time()
+                        sunset_time = datetime.datetime.strptime(sunset_str, '%I:%M %p').time()
+                    except:
+                        sunrise_time = datetime.time(6, 0)
+                        sunset_time = datetime.time(18, 0)
+
+                    # 2. 取得查詢地點的當地時間 (若無法解析則預設使用台灣時間)
+                    local_time_str = current.get('localObsDateTime', '')
+                    try:
+                        time_part = " ".join(local_time_str.split(' ')[1:])
+                        if 'AM' in time_part or 'PM' in time_part:
+                            current_time = datetime.datetime.strptime(time_part, '%I:%M %p').time()
+                        else:
+                            current_time = datetime.datetime.strptime(time_part, '%H:%M').time()
+                    except:
+                        current_time = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).time()
+
+                    # 3. 判斷是否為白天
+                    is_day = sunrise_time <= current_time <= sunset_time
+
+                    time_emoji = "🌤️" if is_day else "🌙"
+                    title = f"🌅 早安！{location} 今日天氣" if is_daily else f"{time_emoji} {location} 的即時天氣"
+                    
+                    # 如果是白天或早安推播就顯示金色，晚上則顯示深藍色
+                    color = discord.Color.gold() if (is_day or is_daily) else discord.Color.dark_blue()
+                    
+                    # 將即時資訊整合，讓排版更簡潔乾淨
+                    description = (
+                        f"**{desc}**\n"
+                        f"🌡️ **氣溫:** {temp}°C (體感 {feels_like}°C)\n"
+                        f"💧 **濕度:** {humidity}% ｜ 💨 **風速:** {wind} km/h ｜ ☔ **降雨:** {precip} mm\n"
+                        f"🌅 **日出:** {sunrise_str} ｜ 🌇 **日落:** {sunset_str}\n"
+                    )
+                    
+                    embed = discord.Embed(title=title, description=description, color=color)
+                    # 根據日夜動態替換 3D 高畫質縮圖
+                    embed.set_thumbnail(url="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Sun.png" if is_day else "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Crescent%20Moon.png")
                     
                     # 未來天氣預報
                     if weather_forecast:
                         forecast_text = ""
                         for day in weather_forecast:
                             date = day.get('date', '')
+                            # 簡化日期顯示 (例如 2026-05-14 變成 05-14)
+                            short_date = date[5:] if len(date) > 5 else date
+                            
                             max_t = day.get('maxtempC', '')
                             min_t = day.get('mintempC', '')
                             
@@ -129,16 +210,17 @@ class Weather(commands.Cog):
                             elif 'weatherDesc' in midday and midday['weatherDesc']:
                                 day_desc = midday['weatherDesc'][0].get('value', '未知')
 
-                            forecast_text += f"**{date}**: {day_desc} | {min_t}°C ~ {max_t}°C | ☔ 降雨機率 {max_chance_of_rain}%\n"
+                            # 將未來天氣轉為更緊湊的一行格式
+                            forecast_text += f"`{short_date}` {day_desc} ({min_t}~{max_t}°C) ｜ ☔ {max_chance_of_rain}%\n"
                             
                         if forecast_text:
-                            embed.add_field(name="📅 近期天氣預報", value=forecast_text, inline=False)
+                            embed.add_field(name="📅 近期預報", value=forecast_text, inline=False)
                             
-                    footer_text = "天氣資料來源: wttr.in"
+                    footer_text = "來源: wttr.in"
                     if is_daily:
-                        footer_text += "\n💡 提示: 這是您的每日早晨推播，如想取消請輸入 /dailyweather"
+                        footer_text += " | 輸入 /dailyweather 可取消推播"
                     elif is_default:
-                        footer_text += "\n💡 提示: 這是你綁定的預設地點。如要更改請使用 /setweather，或是在指令後方加上指定地點。"
+                        footer_text += " | 這是預設地點，使用 /setweather 可更改"
                     
                     embed.set_footer(text=footer_text)
                     return embed
@@ -165,7 +247,12 @@ class Weather(commands.Cog):
                 location = result[0]
                 is_default = True
             else:
-                return await ctx.send(embed=discord.Embed(description="❌ 你沒有輸入地點，也沒有綁定過預設地點喔！\n請先使用 `/setweather <地點>` 來綁定，或是直接輸入 `/weather <地點>` 來查詢。", color=discord.Color.red()), ephemeral=True)
+                view = WeatherBindView(self, ctx.author.id)
+                embed = discord.Embed(
+                    description="❌ 你沒有輸入地點，也沒有綁定過預設地點喔！\n點擊下方按鈕立刻綁定，或者直接在指令後方輸入 `/weather <地點>` 來查詢。", 
+                    color=discord.Color.red()
+                )
+                return await ctx.send(embed=embed, view=view, ephemeral=True)
             
         async with ctx.typing():
             embed = await self.get_weather_embed(location, is_default=is_default)
