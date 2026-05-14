@@ -73,5 +73,16 @@ class Economy(commands.Cog):
         embed = discord.Embed(title="💸 轉帳成功", description=f"已成功將 **{amount:,}** 金幣轉給了 {member.mention}！", color=discord.Color.green())
         await ctx.send(embed=embed)
 
+    @commands.hybrid_command(name="addmoney", aliases=["印鈔", "發錢"], help="【機器人擁有者專用】偷偷發送金幣給指定玩家")
+    @commands.is_owner()
+    async def add_money(self, ctx: commands.Context, member: discord.Member, amount: int):
+        if amount <= 0:
+            return await ctx.send(embed=discord.Embed(title="❌ 操作失敗", description="發送金額必須大於 0！", color=discord.Color.red()), ephemeral=True)
+            
+        await self.bot.db.update_balance(member.id, amount)
+        
+        embed = discord.Embed(title="🤫 老闆特權發動", description=f"已偷偷將 **{amount:,}** 金幣匯入 {member.mention} 的帳戶中！", color=discord.Color.gold())
+        await ctx.send(embed=embed, ephemeral=True) # ephemeral=True 讓這則訊息只有你才看得到
+
 async def setup(bot):
     await bot.add_cog(Economy(bot))
