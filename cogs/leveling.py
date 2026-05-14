@@ -8,9 +8,6 @@ class Leveling(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         
-        # 避免玩家狂刷訊息洗經驗值，加入冷卻時間字典 (紀錄最後發話時間)
-        self.cooldowns = {} 
-
     async def cog_load(self):
         await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS leveling (guild_id INTEGER, user_id INTEGER, xp INTEGER, level INTEGER, PRIMARY KEY (guild_id, user_id))''')
         await self.bot.db.db.commit()
@@ -20,13 +17,6 @@ class Leveling(commands.Cog):
         # 不計算機器人的訊息，也不計算私訊
         if message.author.bot or message.guild is None:
             return
-
-        # 檢查冷卻時間 (設定每 60 秒只能獲得一次經驗值)
-        now = datetime.now()
-        last_msg_time = self.cooldowns.get(message.author.id)
-        if last_msg_time and now < last_msg_time + timedelta(seconds=60):
-            return
-        self.cooldowns[message.author.id] = now
 
         guild_id = message.guild.id
         user_id = message.author.id
@@ -41,8 +31,8 @@ class Leveling(commands.Cog):
         else:
             xp, level = result
 
-        # 隨機增加 15 ~ 25 點經驗值
-        new_xp = xp + random.randint(15, 25)
+        # 隨機增加 5 ~ 10 點經驗值 (因無冷卻時間而調低)
+        new_xp = xp + random.randint(5, 10)
         
         # 升級公式：所需 XP = 5*(等級^2) + 50*等級 + 100
         xp_needed = 5 * (level ** 2) + 50 * level + 100
