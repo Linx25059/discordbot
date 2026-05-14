@@ -30,12 +30,12 @@ class Info(commands.Cog):
         )
         embed.add_field(
             name="🔞 老司機專屬福利", 
-            value="內建龐大的成人片單庫與 `/av` 抽籤功能，支援自動爬取 Jable、MissAV、Hanime 等 4 大平台即時熱門榜單！\n更有每日深夜福利自動推播，以及個人專屬車庫管理系統。", 
+            value="內建龐大的成人片單庫與 `/av` 抽籤功能，支援動態爬取 Jable、MissAV 等最新熱門榜單！\n更有群友專屬投稿推薦 (`/submit_av`) 與老司機排行榜 (`/av_top`)，分享好車不藏私。", 
             inline=False
         )
         embed.add_field(
             name="🛠️ 實用工具與管理", 
-            value="自動修復 Twitter, IG 等社群連結預覽、自動建立/刪除動態語音頻道。\n每日天氣與新聞推播，以及完善的報錯單 (Ticket) 系統，幫助管理員輕鬆維護伺服器。", 
+            value="自動修復社群連結預覽、自動建立與刪除動態語音頻道。\n支援專屬地點天氣綁定與每日早晨推播 (`/dailyweather`)，以及完善的報錯單 (Ticket) 系統，幫助管理員輕鬆維護伺服器。", 
             inline=False
         )
         
