@@ -75,11 +75,11 @@ class Finance(commands.Cog):
             
         now_str = datetime.datetime.now(zoneinfo.ZoneInfo("Asia/Taipei")).strftime('%m/%d %H:00')
         for sym, name, price, next_price in stocks:
-            # 產生下下個小時的價格 (加入 5% 機率暴跌或暴漲的黑天鵝事件)
+            # 產生下下個小時的價格 (稍微調高期望值讓股市長期偏向牛市，讓大家更容易賺錢)
             if random.random() < 0.05:
-                volatility = random.uniform(0.5, 2.0)
+                volatility = random.uniform(0.5, 2.5)
             else:
-                volatility = random.uniform(0.85, 1.15)
+                volatility = random.uniform(0.90, 1.15)
             
             # 企業級修復：防止股票跌到 1 之後永遠無法翻身的「殭屍股 Bug」
             new_next = int(next_price * volatility)
