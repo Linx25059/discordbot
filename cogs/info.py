@@ -20,12 +20,12 @@ class Info(commands.Cog):
         )
         embed.add_field(
             name="💹 經濟與虛擬股市", 
-            value="體驗完整的虛擬人生！透過 `/work` 打工賺錢，並在賭場裡遊玩 21點、拉霸機等小遊戲。\n更有具備即時歷史折線圖 (`/stock_history`) 與動態大盤的虛擬股市系統，讓你體驗低買高賣的快感！", 
+            value="體驗完整的虛擬人生！透過 `/work` 打工賺錢，並將現金存入銀行 (`/deposit`) 賺取每日利息。\n在賭場裡遊玩 21點、拉霸機等小遊戲，還有具備即時歷史折線圖的虛擬股市系統，讓你體驗低買高賣的快感！", 
             inline=False
         )
         embed.add_field(
-            name="🎵 影音與娛樂", 
-            value="支援高音質 YouTube 音樂點播 (`/play`)，帶有控制面板與待播清單。\n提供多款互動小遊戲（抽遊戲、抽獎），以及 `/meme` 迷因圖產生器，隨時活絡氣氛。", 
+            name="🎵 影音與趣味互動", 
+            value="支援高音質 YouTube 音樂點播 (`/play`)，帶有控制面板與待播清單。\n提供多種惡搞頭貼指令 (`/pixelate`, `/wasted` 等) 與 `/meme` 迷因圖產生器，還有美食手搖推薦，隨時活絡氣氛！", 
             inline=False
         )
         embed.add_field(
