@@ -29,7 +29,24 @@ class Profile(commands.Cog):
 
         # 3. 查詢成就稱號
         badges = await self.bot.db.get_achievements(user_id)
-        badge_str = "\n".join([f"🏅 {b}" for b in badges]) if badges else "尚未獲得任何稱號..."
+        
+        # 定義成就對應的專屬圖示 (依照稀有度或主題設定)
+        badge_icons = {
+            "【天選之人】": "👑",       # 稀有掉落
+            "【百烈金右手】": "🌟",     # 隱藏計數成就
+            "【賭神】": "🎰",         # 賭場大贏家
+            "【股票大亨】": "📈",       # 股市翻倍
+            "【AI 詠唱者】": "🤖",      # 消耗大量 Token
+            "【夜貓子】": "🦉",         # 深夜活動
+            "【大慈善家】": "💸",       # 賭場大輸家
+            "【破產仔】": "📉",         # 餘額歸零
+            "【超級大韭菜】": "🥬"      # 股市慘賠
+        }
+        
+        if badges:
+            badge_str = "\n".join([f"{badge_icons.get(b, '🏅')} {b}" for b in badges])
+        else:
+            badge_str = "尚未獲得任何稱號..."
 
         embed = discord.Embed(title=f"🪪 {member.display_name} 的個人檔案", color=discord.Color.purple())
         embed.set_thumbnail(url=member.display_avatar.url)
