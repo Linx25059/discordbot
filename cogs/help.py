@@ -10,13 +10,13 @@ class Help(commands.Cog):
         await self.bot.db.db.commit()
 
         # --- 在這裡設定最新版本的更新內容 ---
-        self.current_version = "1.2"
+        self.current_version = "1.3"
         self.changelog_title = f"✨ 機器人更新日誌 (v{self.current_version})"
         self.changelog_text = (
-            "**🚀 v1.2 版本更新發布！**\n"
-            "• 🤖 **AI 多重人格：** 升級無限制 AI 聊天，支援 `/set_persona` 一鍵切換傲嬌、毒舌、貓娘等多種個性！\n"
-            "• 📈 **金融股市：** 虛擬股市大升級！新增 `/stock_history` 價格折線圖與動態大盤狀態，看盤更直覺。\n"
-            "• 🛠️ **系統與除錯：** 完美攔截所有錯誤並附上報錯單按鈕，新增 `/quota` 查詢 AI 額度，系統穩定度大提升。\n"
+            "**🚀 v1.3 版本大更新發布！**\n"
+            "• 🌤️ **天氣系統升級：** 支援個人專屬地點綁定 (`/setweather`)、每日早晨天氣推播 (`/dailyweather`)，並新增依據時區變化的日夜動態縮圖！\n"
+            "• 🚗 **老司機車庫：** 新增群友投稿系統 (`/submit_av`) 與熱門車牌排行榜 (`/av_top`)，還能在抽籤時為喜歡的片單點讚！\n"
+            "• ⚙️ **核心優化：** 解決斜線指令重複問題，新增一鍵清除指令快取，並支援開發者無縫動態更新環境變數 (`!update_env`)。\n"
         )
 
         # 啟動時檢查是否需要推播更新
