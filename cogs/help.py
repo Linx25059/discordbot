@@ -122,7 +122,7 @@ class Help(commands.Cog):
         # 處理未分類的其他指令 (例如 Help 模組內的指令)
         other_cmds = []
         for cmd in self.bot.commands:
-            if cmd.hidden or cmd.cog_name in categorized_cog_names:
+            if cmd.hidden or cmd.cog_name in categorized_cog_names or cmd.cog_name == "NSFW":
                 continue
                 
             # 過濾未分類的管理員指令
@@ -195,6 +195,8 @@ class Help(commands.Cog):
         # 整理所有指令並依據 Cog 分類
         cogs_dict = {}
         for cmd in self.bot.commands:
+            if cmd.cog_name == "NSFW":
+                continue
             cog_name = cmd.cog_name or "未分類指令"
             if cog_name not in cogs_dict:
                 cogs_dict[cog_name] = []
