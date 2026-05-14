@@ -42,9 +42,6 @@ class ErrorHandler(commands.Cog):
         elif isinstance(error, commands.NotOwner):
             embed.description = "❌ 這是開發者專用的隱藏指令，一般使用者無法執行喔！"
 
-        elif isinstance(error, commands.NSFWChannelRequired):
-            embed.description = "❌ 這個指令只能在 **NSFW (限制級)** 頻道使用喔！請移步至老司機專區。"
-
         elif isinstance(error, commands.CheckFailure):
             embed.description = "❌ 你目前不符合使用這個指令的條件或權限喔！"
 
