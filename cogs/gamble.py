@@ -96,10 +96,11 @@ class BlackjackRebetModal(discord.ui.Modal, title='💸 重新下注開桌'):
         style=discord.TextStyle.short
     )
 
-    def __init__(self, cog, ctx):
+    def __init__(self, original_view: "BlackjackPlayView"):
         super().__init__(timeout=180)
-        self.cog = cog
-        self.ctx = ctx
+        self.original_view = original_view
+        self.cog = original_view.cog
+        self.ctx = original_view.ctx
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
@@ -115,10 +116,18 @@ class BlackjackRebetModal(discord.ui.Modal, title='💸 重新下注開桌'):
             return await interaction.response.send_message(f"❌ 你的餘額不足以用此金額開桌！(需要 **{amount:,}** 金幣)", ephemeral=True)
 
         # 停用舊訊息的按鈕
-        original_view = interaction.message.view
-        for child in original_view.children:
+        for child in self.original_view.children:
             child.disabled = True
-        await interaction.message.edit(view=original_view)
+            
+        # 安全地更新原訊息 (避免 interaction.message 為 None 的情況)
+        if interaction.message:
+            try:
+                await interaction.message.edit(view=self.original_view)
+            except: pass
+        elif self.original_view.message:
+            try:
+                await self.original_view.message.edit(view=self.original_view)
+            except: pass
         
         # 回應 Modal
         await interaction.response.send_message(f"✅ 已用新賭注 **{amount:,}** 金幣重新開桌！", ephemeral=True)
@@ -390,7 +399,7 @@ class BlackjackPlayView(discord.ui.View):
                 if inter.user.id != self.ctx.author.id:
                     return await inter.response.send_message("❌ 只有原房主可以重新開桌喔！", ephemeral=True)
                 
-                await inter.response.send_modal(BlackjackRebetModal(self.cog, self.ctx))
+                await inter.response.send_modal(BlackjackRebetModal(self))
             rebet_btn.callback = rebet_callback
             self.add_item(rebet_btn)
 
