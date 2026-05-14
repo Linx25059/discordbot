@@ -13,7 +13,7 @@ class Help(commands.Cog):
         self.current_version = "1.3"
         self.changelog_title = f"✨ 機器人更新日誌 (v{self.current_version})"
         self.changelog_text = (
-            "**🚀 v1.4 介面大升級發布！**\n"
+            "**🚀 v1.3 介面大升級發布！**\n"
             "• 🛡️ **社群健康化：** 移除 NSFW 模組，打造更安全的優質社群環境！\n"
             "• � **指令選單翻新：** `/help` 指令清單全面升級！更精細劃分為六大領域，找功能更直覺方便。\n"
             "• ✨ **模組完整收錄：** 新增「系統與資訊」分類，現在你能更輕鬆地查看機器人狀態與更新日誌囉！\n"
