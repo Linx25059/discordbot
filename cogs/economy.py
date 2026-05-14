@@ -1,10 +1,11 @@
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 import sqlite3
 import random
-from datetime import datetime
+from datetime import datetime, time
 import aiosqlite
+import zoneinfo
 from typing import Optional
 import logging
 
@@ -12,18 +13,98 @@ class Economy(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+    async def cog_load(self):
+        # 建立銀行資料表
+        await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS bank (user_id INTEGER PRIMARY KEY, balance INTEGER DEFAULT 0)''')
+        await self.bot.db.db.commit()
+        self.daily_interest_task.start()
+
+    def cog_unload(self):
+        self.daily_interest_task.cancel()
+
+    tz_tw = zoneinfo.ZoneInfo("Asia/Taipei")
+    @tasks.loop(time=time(hour=0, minute=0, second=0, tzinfo=tz_tw))
+    async def daily_interest_task(self):
+        # 每天台灣時間凌晨 00:00，自動發放 1% 存款利息給所有人
+        await self.bot.db.db.execute('UPDATE bank SET balance = CAST(balance * 1.01 AS INTEGER) WHERE balance > 0')
+        await self.bot.db.db.commit()
+
+    @daily_interest_task.before_loop
+    async def before_daily_interest(self):
+        await self.bot.wait_until_ready()
+
+    async def get_bank_balance(self, user_id: int) -> int:
+        async with self.bot.db.db.execute('SELECT balance FROM bank WHERE user_id = ?', (user_id,)) as cursor:
+            row = await cursor.fetchone()
+            return row[0] if row else 0
+
+    async def update_bank_balance(self, user_id: int, amount: int):
+        async with self.bot.db.db.execute('SELECT balance FROM bank WHERE user_id = ?', (user_id,)) as cursor:
+            row = await cursor.fetchone()
+        if row:
+            await self.bot.db.db.execute('UPDATE bank SET balance = balance + ? WHERE user_id = ?', (amount, user_id))
+        else:
+            await self.bot.db.db.execute('INSERT INTO bank (user_id, balance) VALUES (?, ?)', (user_id, amount))
+        await self.bot.db.db.commit()
+
     # --- 基礎經濟指令 ---
-    @commands.hybrid_command(name="bal", aliases=["balance", "錢包"], help="查看餘額")
+    @commands.hybrid_command(name="bal", aliases=["balance", "錢包", "存款"], help="查看現金與銀行餘額")
     async def balance(self, ctx: commands.Context, member: Optional[discord.Member] = None):
         member = member or ctx.author
-        balance = await self.bot.db.get_balance(member.id)
+        wallet_balance = await self.bot.db.get_balance(member.id)
+        bank_balance = await self.get_bank_balance(member.id)
+        total = wallet_balance + bank_balance
         
         embed = discord.Embed(title="💳 帳戶餘額", color=discord.Color.gold())
         embed.set_thumbnail(url=member.display_avatar.url)
-        embed.add_field(name="帳戶持有人", value=member.mention, inline=True)
-        embed.add_field(name="目前餘額", value=f"**{balance:,}** 金幣", inline=True)
+        embed.add_field(name="帳戶持有人", value=member.mention, inline=False)
+        embed.add_field(name="👛 錢包 (現金)", value=f"**{wallet_balance:,}** 金幣", inline=True)
+        embed.add_field(name="🏦 銀行存款", value=f"**{bank_balance:,}** 金幣", inline=True)
+        embed.add_field(name="💰 總資產", value=f"**{total:,}** 金幣", inline=True)
         
-        embed.set_footer(text="💡 提示：可以多使用 /work 打工來賺取金幣喔！")
+        embed.set_footer(text="💡 提示：可以多使用 /work 打工來賺取金幣喔！\n(銀行存款每天凌晨會自動發放 1% 利息)")
+        await ctx.send(embed=embed)
+
+    @commands.hybrid_command(name="deposit", aliases=["存錢", "dep"], help="將現金存入銀行生利息")
+    @app_commands.describe(amount="要存入的金額 (輸入 0 或不填代表全存)")
+    async def deposit(self, ctx: commands.Context, amount: int = 0):
+        if amount < 0:
+            return await ctx.send(embed=discord.Embed(title="❌ 錯誤", description="存款金額不能是負數！", color=discord.Color.red()), ephemeral=True)
+            
+        wallet = await self.bot.db.get_balance(ctx.author.id)
+        if wallet <= 0:
+            return await ctx.send(embed=discord.Embed(title="❌ 錯誤", description="你的錢包裡沒有任何金幣可以存！", color=discord.Color.red()), ephemeral=True)
+        
+        if amount == 0:
+            amount = wallet # 全存
+        elif amount > wallet:
+            return await ctx.send(embed=discord.Embed(title="❌ 餘額不足", description=f"你的錢包只有 **{wallet:,}** 金幣！", color=discord.Color.red()), ephemeral=True)
+            
+        await self.bot.db.update_balance(ctx.author.id, -amount)
+        await self.update_bank_balance(ctx.author.id, amount)
+        
+        embed = discord.Embed(title="🏦 存款成功", description=f"已將 **{amount:,}** 金幣存入銀行！\n每天凌晨會自動發放 1% 利息。", color=discord.Color.green())
+        await ctx.send(embed=embed)
+
+    @commands.hybrid_command(name="withdraw", aliases=["提款", "領錢", "with"], help="從銀行提出現金")
+    @app_commands.describe(amount="要提出的金額 (輸入 0 或不填代表全領)")
+    async def withdraw(self, ctx: commands.Context, amount: int = 0):
+        if amount < 0:
+            return await ctx.send(embed=discord.Embed(title="❌ 錯誤", description="提款金額不能是負數！", color=discord.Color.red()), ephemeral=True)
+            
+        bank = await self.get_bank_balance(ctx.author.id)
+        if bank <= 0:
+            return await ctx.send(embed=discord.Embed(title="❌ 錯誤", description="你的銀行帳戶裡沒有任何存款！", color=discord.Color.red()), ephemeral=True)
+        
+        if amount == 0:
+            amount = bank # 全領
+        elif amount > bank:
+            return await ctx.send(embed=discord.Embed(title="❌ 餘額不足", description=f"你的銀行戶頭只有 **{bank:,}** 金幣！", color=discord.Color.red()), ephemeral=True)
+            
+        await self.update_bank_balance(ctx.author.id, -amount)
+        await self.bot.db.update_balance(ctx.author.id, amount)
+        
+        embed = discord.Embed(title="🏧 提款成功", description=f"已從銀行提出 **{amount:,}** 金幣！", color=discord.Color.green())
         await ctx.send(embed=embed)
 
     @commands.cooldown(1, 86400, commands.BucketType.user)
@@ -49,7 +130,7 @@ class Economy(commands.Cog):
         await self.bot.db.update_balance(ctx.author.id, salary)
         
         ach_msg = ""
-        now = datetime.now()
+        now = datetime.now(zoneinfo.ZoneInfo("Asia/Taipei"))
         if 2 <= now.hour < 5:
             # 直接使用 DatabaseManager 的優化方法！
             if await self.bot.db.check_and_add_achievement(ctx.author.id, '【夜貓子】'):
@@ -83,6 +164,38 @@ class Economy(commands.Cog):
         
         embed = discord.Embed(title="🤫 老闆特權發動", description=f"已偷偷將 **{amount:,}** 金幣匯入 {member.mention} 的帳戶中！", color=discord.Color.gold())
         await ctx.send(embed=embed, ephemeral=True) # ephemeral=True 讓這則訊息只有你才看得到
+
+    @commands.hybrid_command(name="richest", aliases=["富豪榜", "首富"], help="查看全服總資產 (現金 + 存款) 最多的前十名富豪")
+    async def richest(self, ctx: commands.Context):
+        # 利用 UNION ALL 把錢包 (economy) 和銀行 (bank) 的錢加總起來排序
+        query = '''
+            SELECT user_id, SUM(balance) as total_balance
+            FROM (
+                SELECT user_id, balance FROM economy
+                UNION ALL
+                SELECT user_id, balance FROM bank
+            )
+            GROUP BY user_id
+            ORDER BY total_balance DESC
+            LIMIT 10
+        '''
+        async with self.bot.db.db.execute(query) as cursor:
+            results = await cursor.fetchall()
+            
+        if not results:
+            return await ctx.send(embed=discord.Embed(description="🤔 伺服器裡目前連一個有錢人都沒有喔！", color=discord.Color.light_grey()))
+            
+        embed = discord.Embed(title="🏆 全服富豪排行榜", description="來看看誰是真正的首富大戶 (現金 + 存款)：", color=discord.Color.gold())
+        
+        for i, (user_id, total) in enumerate(results):
+            user = self.bot.get_user(user_id)
+            name = user.display_name if user else f"低調富豪 ({user_id})"
+            medal = "🥇" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else "🏅"
+            
+            embed.add_field(name=f"{medal} 第 {i+1} 名：{name}", value=f"總資產: **{int(total):,}** 金幣", inline=False)
+            
+        embed.set_footer(text="💡 想要上榜嗎？多打工、存銀行或是去賭場試試手氣吧！")
+        await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(Economy(bot))
