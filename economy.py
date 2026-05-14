@@ -220,7 +220,7 @@ class Economy(commands.Cog):
         await self.bot.db.update_balance(ctx.author.id, salary)
         
         ach_msg = ""
-        now = datetime.now()
+        now = datetime.now(zoneinfo.ZoneInfo("Asia/Taipei"))
         if 2 <= now.hour < 5:
             # 直接使用 DatabaseManager 的優化方法！
             if await self.bot.db.check_and_add_achievement(ctx.author.id, '【夜貓子】'):
