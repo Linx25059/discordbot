@@ -15,21 +15,23 @@ class ImageGen(commands.Cog):
         member = member or ctx.author
         avatar_url = member.display_avatar.replace(format="png", size=512).url
         
-        async with ctx.typing():
-            try:
-                async with self.bot.session.get(avatar_url) as resp:
-                    if resp.status != 200:
-                        return await ctx.send("❌ 抓不到大頭貼，可能有點問題！")
-                    data = await resp.read()
-                
-                # ⚡ 使用 run_in_executor 避免 PIL 阻塞事件迴圈
-                image_binary = await self.bot.loop.run_in_executor(None, process_func, data)
-                
-                embed = discord.Embed(title=title, description=description, color=discord.Color.random())
-                embed.set_image(url=f"attachment://{filename}")
-                await ctx.send(embed=embed, file=discord.File(fp=image_binary, filename=filename))
-            except Exception as e:
-                await ctx.send(embed=discord.Embed(description=f"⚠️ 產生圖片時發生錯誤：{e}", color=discord.Color.red()), ephemeral=True)
+        # 強制延遲回應，避免下載圖片與處理超過 3 秒導致 Discord 報錯 (Unknown interaction)
+        await ctx.defer()
+        
+        try:
+            async with self.bot.session.get(avatar_url) as resp:
+                if resp.status != 200:
+                    return await ctx.send("❌ 抓不到大頭貼，可能有點問題！")
+                data = await resp.read()
+            
+            # ⚡ 使用 run_in_executor 避免 PIL 阻塞事件迴圈
+            image_binary = await self.bot.loop.run_in_executor(None, process_func, data)
+            
+            embed = discord.Embed(title=title, description=description, color=discord.Color.random())
+            embed.set_image(url=f"attachment://{filename}")
+            await ctx.send(embed=embed, file=discord.File(fp=image_binary, filename=filename))
+        except Exception as e:
+            await ctx.send(embed=discord.Embed(description=f"⚠️ 產生圖片時發生錯誤：{e}", color=discord.Color.red()), ephemeral=True)
 
     @commands.cooldown(1, 5, commands.BucketType.user)
     @commands.hybrid_command(name="jail", aliases=["大牢", "監獄"], help="把別人的頭貼關進大牢")
@@ -58,9 +60,9 @@ class ImageGen(commands.Cog):
         member = member or ctx.author
         def process_image(img_data):
             base_img = Image.open(io.BytesIO(img_data)).convert("RGBA")
-            # 先將圖片縮小到 32x32，再用「最近鄰插值」放大回原尺寸，就能創造出像素風馬賽克！
-            small_img = base_img.resize((32, 32), resample=Image.Resampling.BILINEAR)
-            final_img = small_img.resize(base_img.size, Image.Resampling.NEAREST)
+            # 兼容舊版 Pillow 寫法 (虛擬機環境相容性更高)
+            small_img = base_img.resize((32, 32), resample=Image.BILINEAR)
+            final_img = small_img.resize(base_img.size, Image.NEAREST)
             
             image_binary = io.BytesIO()
             final_img.save(image_binary, "PNG")
