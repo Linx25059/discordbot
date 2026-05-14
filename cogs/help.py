@@ -1,6 +1,41 @@
 import discord
 from discord.ext import commands
 
+# --- 幫助選單下拉控制 UI ---
+class HelpSelect(discord.ui.Select):
+    def __init__(self, mapping, bot):
+        self.mapping = mapping
+        self.bot = bot
+        options = [discord.SelectOption(label="🏠 首頁 (Home)", description="回到幫助選單首頁", emoji="🏠", value="Home")]
+        for cat_name in mapping.keys():
+            options.append(discord.SelectOption(label=cat_name, description=f"查看 {cat_name} 的指令", value=cat_name))
+            
+        super().__init__(placeholder="👇 請選擇一個指令分類來查看詳細內容...", min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        category = self.values[0]
+        if category == "Home":
+            embed = discord.Embed(title="🤖 機器人指令清單", description="以下是目前所有可用的指令分類：\n*(提示：點擊下方選單選擇分類，或在對話框輸入 `/` 查看詳細說明！)*", color=discord.Color.blurple())
+            embed.set_thumbnail(url=self.bot.user.display_avatar.url)
+            for cat, cmds in self.mapping.items():
+                embed.add_field(name=cat, value=f"包含 {len(cmds)} 個指令", inline=True)
+        else:
+            embed = discord.Embed(title=f"{category} 指令清單", description="\n".join(self.mapping[category]), color=discord.Color.blue())
+        
+        await interaction.response.edit_message(embed=embed)
+
+class HelpView(discord.ui.View):
+    def __init__(self, mapping, author_id, bot):
+        super().__init__(timeout=180) # 3分鐘後選單自動失效
+        self.author_id = author_id
+        self.add_item(HelpSelect(mapping, bot))
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.author_id:
+            await interaction.response.send_message("❌ 這是別人的幫助選單喔！請自己輸入 /help 來查詢。", ephemeral=True)
+            return False
+        return True
+
 class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -82,15 +117,8 @@ class Help(commands.Cog):
 
     @commands.hybrid_command(name="help", aliases=["幫助", "指令", "h"], help="顯示所有可用的指令清單")
     async def custom_help(self, ctx):
-        embed = discord.Embed(
-            title="🤖 機器人指令清單",
-            description="以下是目前所有可用的指令：\n*(提示：在對話框輸入 `/` 可以查看各指令的詳細說明喔！)*",
-            color=discord.Color.blurple()
-        )
-        embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-
-        # 依據分類動態加入指令
         categorized_cog_names = []
+        mapping = {} # 用來儲存分類與對應指令的字典
         for category, cogs in self.categorized_cogs.items():
             category_cmds = []
             for cog_name in cogs.keys():
@@ -125,7 +153,7 @@ class Help(commands.Cog):
                         category_cmds.append(f"**`/{cmd.name}{usage}`** - {cmd.short_doc or '無說明'}")
             
             if category_cmds:
-                embed.add_field(name=category, value="\n".join(category_cmds), inline=False)
+                mapping[category] = category_cmds
 
         # 處理未分類的其他指令 (例如 Help 模組內的指令)
         other_cmds = []
@@ -156,10 +184,18 @@ class Help(commands.Cog):
                 other_cmds.append(f"**`/{cmd.name}{usage}`** - {cmd.short_doc or '無說明'}")
                 
         if other_cmds:
-            embed.add_field(name="📌 其他指令", value="\n".join(other_cmds), inline=False)
+            mapping["📌 其他指令"] = other_cmds
 
+        # 建立首頁的 Embed
+        embed = discord.Embed(title="🤖 機器人指令清單", description="以下是目前所有可用的指令分類：\n*(提示：點擊下方選單選擇分類，或在對話框輸入 `/` 查看詳細說明！)*", color=discord.Color.blurple())
+        embed.set_thumbnail(url=self.bot.user.display_avatar.url)
+        for cat, cmds in mapping.items():
+            embed.add_field(name=cat, value=f"包含 {len(cmds)} 個指令", inline=True)
         embed.set_footer(text=f"查詢者: {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
-        await ctx.send(embed=embed)
+        
+        # 綁定下拉式選單 View
+        view = HelpView(mapping, ctx.author.id, self.bot)
+        await ctx.send(embed=embed, view=view)
 
     @commands.hybrid_command(name="changelog", aliases=["update", "更新", "更新日誌"], help="查看機器人的最新更新內容")
     async def changelog(self, ctx):
@@ -194,12 +230,6 @@ class Help(commands.Cog):
     @commands.hybrid_command(name="adminhelp", aliases=["allcmds", "ah"], help="【管理員專用】查看所有指令 (包含隱藏及管理權限指令)")
     @commands.has_permissions(administrator=True)
     async def admin_help(self, ctx):
-        embed = discord.Embed(
-            title="🛠️ 管理員指令清單",
-            description="以下列出目前系統載入的**所有指令**（包含隱藏與管理員專用指令）：",
-            color=discord.Color.red()
-        )
-
         # 整理所有指令並依據 Cog 分類
         cogs_dict = {}
         for cmd in self.bot.commands:
@@ -209,6 +239,20 @@ class Help(commands.Cog):
             if cog_name not in cogs_dict:
                 cogs_dict[cog_name] = []
             cogs_dict[cog_name].append(cmd)
+
+        # --- 企業級修復：補回上次遺漏的變數初始化 ---
+        cog_display_names = {}
+        for category, cogs in self.categorized_cogs.items():
+            for cog_key, desc in cogs.items():
+                cog_display_names[cog_key] = desc
+
+        embeds = []
+        current_embed = discord.Embed(
+            title="🛠️ 管理員指令清單",
+            description="以下列出目前系統載入的**所有指令**（包含隱藏與管理權限指令）：",
+            color=discord.Color.red()
+        )
+        field_count = 0
 
         for cog_name, cmds in sorted(cogs_dict.items()):
             cmd_list = []
@@ -227,15 +271,45 @@ class Help(commands.Cog):
                 
                 cmd_list.append(f"**`/{cmd.name}{usage}`**{hidden_tag}{admin_tag} - {cmd.short_doc or '無說明'}")
             
-            value = "\n".join(cmd_list)
-            # 防止字數超過 Discord Embed 欄位限制的 1024 字元
-            if len(value) > 1024:
-                value = value[:1020] + "..."
+            display_name = cog_display_names.get(cog_name, f"🧩 {cog_name}")
             
-            embed.add_field(name=f"📌 {cog_name}", value=value, inline=False)
+            # 將指令列表分塊，完美迴避 Discord 單一欄位 1024 字元的限制
+            chunk = ""
+            part_num = 1
+            for line in cmd_list:
+                if len(chunk) + len(line) + 1 > 1024:
+                    # 避免超過單一 Embed 最多 25 個欄位的限制
+                    if field_count >= 25:
+                        embeds.append(current_embed)
+                        current_embed = discord.Embed(title="🛠️ 管理員指令清單 (續)", color=discord.Color.red())
+                        field_count = 0
+                        
+                    field_name = f"📌 {display_name}" if part_num == 1 else f"📌 {display_name} (續)"
+                    current_embed.add_field(name=field_name, value=chunk, inline=False)
+                    field_count += 1
+                    chunk = line + "\n"
+                    part_num += 1
+                else:
+                    chunk += line + "\n"
+                    
+            if chunk:
+                if field_count >= 25:
+                    embeds.append(current_embed)
+                    current_embed = discord.Embed(title="🛠️ 管理員指令清單 (續)", color=discord.Color.red())
+                    field_count = 0
+                
+                field_name = f"📌 {display_name}" if part_num == 1 else f"📌 {display_name} (續)"
+                current_embed.add_field(name=field_name, value=chunk, inline=False)
+                field_count += 1
 
-        embed.set_footer(text=f"查詢者: {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
-        await ctx.send(embed=embed, ephemeral=True)
+        if field_count > 0:
+            embeds.append(current_embed)
+            
+        if embeds:
+            embeds[-1].set_footer(text=f"查詢者: {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
+        
+        # 支援一次傳送多個 Embed 面板
+        await ctx.send(embeds=embeds, ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(Help(bot))
