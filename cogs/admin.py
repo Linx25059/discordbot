@@ -8,11 +8,17 @@ class Admin(commands.Cog):
     # 🛡️ 功能 1：一鍵清單 (!clear <數量>)
     @commands.hybrid_command(name="clear", help="清除指定數量的訊息 (預設為1則)")
     @commands.has_permissions(manage_messages=True) # 防護機制：只有具備「管理訊息」權限的人才能用
-    async def clear(self, ctx, amount: int = 2):
-        # amount + 1 是為了連同使用者剛輸入的 !clear 指令本身一起刪掉
-        deleted = await ctx.channel.purge(limit=amount + 1)
-        # 傳送提示，並設定 delete_after=3.0，讓這個提示 3 秒後自動消失，保持版面乾淨
-        await ctx.send(f"🧹 已成功清除 {len(deleted)-1} 則訊息。", delete_after=3.0)
+    async def clear(self, ctx, amount: int = 1):
+        if ctx.interaction:
+            # 斜線指令：先延遲回應，並設為隱藏訊息 (ephemeral=True) 避免被刪除或干擾版面
+            await ctx.interaction.response.defer(ephemeral=True)
+            deleted = await ctx.channel.purge(limit=amount)
+            await ctx.interaction.followup.send(f"🧹 已成功清除 {len(deleted)} 則訊息。", ephemeral=True)
+        else:
+            # 一般文字指令：amount + 1 是為了連同使用者剛輸入的 !clear 指令本身一起刪掉
+            deleted = await ctx.channel.purge(limit=amount + 1)
+            # 傳送提示，並設定 delete_after=3.0，讓這個提示 3 秒後自動消失，保持版面乾淨
+            await ctx.send(f"🧹 已成功清除 {len(deleted)-1} 則訊息。", delete_after=3.0)
 
     # 🛡️ 功能 2：歡迎新成員系統 (自動觸發，不用打指令)
     @commands.Cog.listener()
