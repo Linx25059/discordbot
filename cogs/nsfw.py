@@ -136,7 +136,9 @@ class NSFWRerollView(discord.ui.View):
         display_code = "🔗 點擊觀看原網址" if (av.get('url') or av['code'].lower().startswith("http")) else av['code']
         embed.add_field(name="🔑 番號 / 連結", value=f"**[{display_code}]({primary_link})**", inline=True)
         embed.add_field(name="💃 女優", value=f"{av['actress']}", inline=True)
-        embed.add_field(name="📝 點評 / 標題", value=av['desc'], inline=False)
+        
+        if av.get('title'):
+            embed.add_field(name="📝 標題", value=av['title'], inline=False)
         
         if not av.get('url') and not av['code'].lower().startswith("http"):
             search_links = get_search_links(av['code'], av['category'])
@@ -195,7 +197,7 @@ class NSFW(commands.Cog):
                                 return {
                                     "code": match[1].upper(),
                                     "actress": "🔥 網路熱門",
-                                    "desc": f"**{match[3].strip()}**\n\n*(資料來源：Jable 近期熱門排行榜)*",
+                                    "title": f"**{match[3].strip()}**\n\n*(資料來源：Jable 近期熱門排行榜)*",
                                     "category": "🌐 網路近期熱門",
                                     "url": match[0],
                                     "thumbnail": match[2]
@@ -215,7 +217,7 @@ class NSFW(commands.Cog):
                                     return {
                                         "code": match[1].upper(),
                                         "actress": "🔥 網路熱門",
-                                        "desc": f"**{match[3].strip()}**\n\n*(資料來源：MissAV 本月熱門排行榜)*",
+                                        "title": f"**{match[3].strip()}**\n\n*(資料來源：MissAV 本月熱門排行榜)*",
                                         "category": "🌐 網路近期熱門",
                                         "url": match[0],
                                         "thumbnail": match[2]
@@ -235,7 +237,7 @@ class NSFW(commands.Cog):
                                     return {
                                         "code": match[3].strip(),
                                         "actress": "🔥 網路熱門",
-                                        "desc": "*(資料來源：Hanime1 首頁趨勢)*",
+                                        "title": "*(資料來源：Hanime1 首頁趨勢)*",
                                         "category": "🌐 網路近期熱門",
                                         "url": match[0],
                                         "thumbnail": match[2]
@@ -252,7 +254,7 @@ class NSFW(commands.Cog):
                                 return {
                                     "code": "XVIDEOS",
                                     "actress": "🔥 網路熱門",
-                                    "desc": f"**{match[2].strip()}**\n\n*(資料來源：Xvideos 熱門排行)*",
+                                    "title": f"**{match[2].strip()}**\n\n*(資料來源：Xvideos 熱門排行)*",
                                     "category": "🌐 網路近期熱門",
                                     "url": f"https://www.xvideos.com{match[0]}",
                                     "thumbnail": match[1]
@@ -351,32 +353,6 @@ class NSFW(commands.Cog):
         return None, None
 
     async def get_av_recommendation(self, category="日本精選"):
-        """片單庫：你可以隨時在這裡新增更多你推薦的番號與評價"""
-        if category == "隨機":
-            category = random.choice(["日本精選", "歐美精選", "動漫改編", "真實素人", "裏番動畫", "網路近期熱門"])
-
-        # 進入熱門爬蟲邏輯
-        if category == "網路近期熱門":
-            web_av = await self.fetch_web_trending()
-            if web_av:
-                return web_av
-            category = "日本精選" # 萬一兩個網站都被 Cloudflare 擋住，自動退回安全備案
-
-        # 嘗試從資料庫抓取玩家投稿
-        # 30% 機率從玩家投稿中抽取 (如果有投稿的話)
-        if random.random() < 0.3:
-            async with self.bot.db.db.execute('SELECT id, user_id, code, actress, description FROM nsfw_submissions WHERE category = ? ORDER BY RANDOM() LIMIT 1', (category,)) as cursor:
-                row = await cursor.fetchone()
-                if row:
-                    submission_id, submitter_id, code, actress, desc = row
-                    result_av = {"id": submission_id, "submitter_id": submitter_id, "code": code, "actress": actress, "desc": f"{desc}\n*(💬 來自群友的熱心推薦)*", "category": category}
-                    if not code.lower().startswith("http"):
-                        res = await self.find_direct_url_from_code(code, category)
-                        if res[0]: result_av['url'] = res[0]
-                        if res[1]: result_av['thumbnail'] = res[1]
-                    return result_av
-
-        # 蒐羅近十年的熱門精選，收錄 500 部經典番號
         actress_db = {
             "三上悠亞": ["SSNI-432", "SSNI-054", "SSNI-098", "SSNI-127", "SSNI-178", "SSNI-205", "SSNI-229", "SSNI-254", "SSNI-316", "SSNI-344", "SSNI-367", "SSNI-391", "SSNI-409", "SSNI-454", "SSNI-475", "SSNI-497", "SSNI-520", "SSNI-542", "SSNI-566", "SSNI-589", "SSNI-616", "SSNI-643", "SSNI-674", "SSNI-703", "SSNI-731"],
             "相澤南": ["IPX-192", "IPX-014", "IPX-035", "IPX-052", "IPX-086", "IPX-112", "IPX-145", "IPX-178", "IPX-212", "IPX-234", "IPX-256", "IPX-289", "IPX-312", "IPX-345", "IPX-378", "IPX-412", "IPX-434", "IPX-456", "IPX-489", "IPX-512", "IPX-545", "IPX-578", "IPX-612", "IPX-634", "IPX-656"],
@@ -400,18 +376,6 @@ class NSFW(commands.Cog):
             "楓花戀": ["IPX-123", "IPX-234", "IPX-345", "IPX-456", "IPX-567", "IPX-678", "IPX-789", "IPX-890", "IPX-901", "IPX-012", "IPX-111", "IPX-222", "IPX-333", "IPX-444", "IPX-555", "IPX-666", "IPX-777", "IPX-888", "IPX-999", "IPX-000", "IPX-147", "IPX-258", "IPX-369", "IPX-470", "IPX-581"],
         }
 
-        desc_pool = [
-            "經典必看神作，老司機一致推薦。", "頂級神顏，話題性超高的一部。", "極致誘惑的頂尖展現，千萬別錯過。", "充滿透明感的清純系代表作。", "身材與臉蛋的完美結合。",
-            "奇蹟的演出，這部的視角絕對讚。", "絕對經典，必看的回憶。", "完美的體驗，讓人回味無窮。", "性感與清純的雙重享受。", "超高人氣企劃，粉絲好評如潮。",
-            "無可挑剔的演出，極具收藏價值。", "展現極致魅力的話題神作。", "令人無法抗拒的誘惑力。", "年度銷售冠軍，實至名歸。", "讓人心跳加速的完美劇情。",
-            "出道以來的巔峰之作。", "將個人魅力發揮到極致的演出。", "清純外表下的反差萌，強力推薦。", "超豪華製作陣容，畫面質感極佳。", "銷量突破紀錄的傳說級企劃。",
-            "充滿戀愛感的甜蜜體驗。", "讓人忍不住一看再看的完美神作。", "從頭到尾絕無冷場的極致誘惑。", "這部的運鏡跟節奏掌握得太好了！", "將純真與狂野完美結合的代表作。",
-            "老司機們口耳相傳的私藏推薦。", "這部的劇情設計意外地非常用心。", "展現絕佳演技與魅力的必看之作。", "超乎想像的精采演出，絕對滿足。", "光是看封面就讓人受不了的超強企劃。",
-            "獨特的視角，帶給你前所未有的震撼。", "細節滿滿，每一個畫面都值得截圖。", "極品身材一覽無遺，視覺享受拉滿。", "讓人心跳漏跳一拍的超甜美笑容。", "充滿成熟大姊姊魅力的極致誘惑。",
-            "學生時代的青春幻想在這裡實現。", "禁忌的關係，讓人背德感十足的神作。", "這部的實用度絕對是本年度 T0 級別。", "絕對會讓你把硬碟空間塞滿的經典。", "將女優個人特色發揮到 120% 的完美企劃。"
-        ]
-
-        # 🇺🇸 歐美精選片單庫 (擴充至 10 位知名女優，各 10 部作品，共 100 部)
         western_db = {
             "Eva Elfie": [f"TUSHY-{i}" for i in range(101, 111)],
             "Angela White": [f"BRAZZERS-{i}" for i in range(101, 111)],
@@ -424,16 +388,6 @@ class NSFW(commands.Cog):
             "Dani Daniels": [f"DANI-{i}" for i in range(101, 111)],
             "Mia Khalifa": [f"MIA-{i}" for i in range(101, 111)]
         }
-        western_desc = [
-            "歐美頂級製作，畫面極致震撼。", "狂野的風格，展現最真實的激情。", "知名大廠出品，畫質與劇情雙重享受。", 
-            "充滿力量與美感，歐美老司機必看。", "極致的視覺衝擊，讓你大飽眼福。", "最自然的情感流露，經典中的經典。", 
-            "不拖泥帶水的節奏，歐美粉絲最愛。", "完美的曲線與迷人的演出。", "跨越國界的性感，絕對值得一看。",
-            "充滿力量與狂野的歐美頂級鉅作。", "金髮碧眼的極致誘惑，千萬別錯過。", "超乎常理的震撼體驗，歐美粉必看。", "不囉嗦直接切入正題的爽快感。", "這部的製作水準簡直是電影等級。",
-            "展現歐美獨有熱情與奔放的絕佳作品。", "讓人血脈賁張的激烈對決。", "狂野不羈的演出，保證讓你大開眼界。", "身材比例逆天的極品歐美神作。", "這部的劇情意外地很有美劇風格。",
-            "超高畫質呈現每一個震撼瞬間。", "歐美老司機強力推薦的實用佳作。", "充滿異國風情的極致感官享受。", "挑戰極限的超強企劃，絕對震撼。", "將性感與野性完美融合的代表作。"
-        ]
-
-        # 👗 動漫改編/Cosplay片單庫 (擴充至 10 個分類，各 10 部作品，共 100 部)
         anime_db = {
             "TMA (知名動漫)": [f"TMA-{i:03d}" for i in range(1, 11)],
             "GIGA (特攝/戰隊)": [f"GIGA-{i:03d}" for i in range(1, 11)],
@@ -446,16 +400,6 @@ class NSFW(commands.Cog):
             "同人展會限定": [f"COM-{i:03d}" for i in range(1, 11)],
             "經典懷舊動畫": [f"RET-{i:03d}" for i in range(1, 11)]
         }
-        anime_desc = [
-            "完美還原原作角色，二次元愛好者必看。", "服裝與道具考究，絕對滿足你的幻想。", "特攝系列經典，帶給你不同的視覺體驗。", 
-            "知名動漫神作改編，懂的都懂。", "打破次元壁的奇蹟演出，誠意滿滿。", "把虛擬的幻想化為現實，視覺與心靈的雙重享受。", 
-            "夢幻般的場景與角色，讓人無法自拔。", "不僅是服裝，連神態都完美捕捉。",
-            "這還原度太高了吧！二次元粉狂喜。", "打破次元壁的完美演出，誠意十足。", "服裝細節超用心，絕對不是隨便穿穿。", "這部的特效跟後製簡直是用心良苦。", "將動漫裡的夢幻情節完美實體化。",
-            "魔法少女的墮落，讓人充滿背德感。", "超人氣遊戲角色神還原，玩家必看。", "異世界轉生題材的巔峰之作。", "獸耳娘的極致誘惑，誰能抵抗？", "這部的劇情完美致敬了原作的名場面。",
-            "2.5次元的極致體驗，彷彿老婆來到現實。", "同人展會上最吸睛的 Cosplay 神還原。", "將二次元的幻想完美具現化的神作。", "這部的選角簡直是從動畫裡走出來的。", "充滿宅文化的內梗，懂的人一定懂。"
-        ]
-
-        # 📷 真實素人片單庫 (5 個系列，各 20 部作品，共 100 部)
         amateur_db = {
             "FC2-PPV (人氣精選)": [f"FC2-PPV-{i}" for i in range(1000001, 1000021)],
             "LUXU (高畫質素人)": [f"LUXU-{i:03d}" for i in range(1, 21)],
@@ -463,16 +407,6 @@ class NSFW(commands.Cog):
             "SIRO (白模素人)": [f"SIRO-{i:03d}" for i in range(1, 21)],
             "GANA (話題素人)": [f"GANA-{i:03d}" for i in range(1, 21)]
         }
-        amateur_desc = [
-            "最真實的臨場感，沒有包袱的自然演出。", "彷彿就在身邊的親切感，素人作品獨有的魅力。", "未經修飾的純粹，絕對讓你耳目一新。", 
-            "高畫質實境拍攝，視角非常到位。", "隱藏在民間的極品，看完絕對會想再看。", "充滿青澀與真實的反應，老司機私藏推薦。", 
-            "素人系列的神作，千萬不能錯過這部。", "第一視角帶入感極強，沉浸式體驗。",
-            "彷彿在看私密流出影片般的真實感。", "毫無表演痕跡的自然反應，這才是素人！", "鄰家女孩初體驗，青澀感讓人欲罷不能。", "這部的第一人稱視角代入感真的太強了。", "隱藏在民間的超級正妹，顏值超高。",
-            "沒有浮誇的演技，只有最真實的熱情。", "超貼近生活的場景，彷彿就在你身邊。", "這部作品絕對會激起你的保護慾。", "充滿真實情侶互動感的超甜美神作。", "高畫質無碼呈現，每一個細節都不放過。",
-            "素人獨有的羞澀與大膽完美結合。", "這部的實用度完全不輸專業女優。", "讓人忍不住想跟她談戀愛的超真實體驗。", "沒有寫好的劇本，一切都是最真實的發生。", "老司機們在私群瘋傳的超強素人影片。"
-        ]
-
-        # 🔞 裏番動畫 (H-Anime) 片單庫 (5 個知名製作商，各 20 部作品，共 100 部)
         hanime_db = {
             "Queen Bee (女王蜂)": [f"https://hanime1.me/watch?v={39100+i}" for i in range(20)],
             "Pink Pineapple (粉紅鳳梨)": [f"https://hanime1.me/watch?v={38200+i}" for i in range(20)],
@@ -480,40 +414,48 @@ class NSFW(commands.Cog):
             "Mary Jane": [f"https://hanime1.me/watch?v={36400+i}" for i in range(20)],
             "Bunnywalker": [f"https://hanime1.me/watch?v={35500+i}" for i in range(20)]
         }
-        hanime_desc = [
-            "經典實用裏番，畫風相當討喜。", "這部的無修正版本絕對值得一看。", "劇情與實用度兼具的優秀動畫。", 
-            "女主角的配音非常生動，強烈推薦。", "作畫精良，完全沒有崩壞的神作。", "這家廠商的代表作之一，老司機必看。", 
-            "極致的動態展現，讓人熱血沸騰。", "觸手、異種等重口味元素的完美呈現。", "純愛向裏番的巔峰，甜到蛀牙。", 
-            "充滿背德感的劇情發展，讓人欲罷不能。", "NTR 愛好者的最愛，絕對胃痛但實用。"
-        ]
 
-        if category == "歐美精選":
-            db, pool = western_db, western_desc
-        elif category == "動漫改編":
-            db, pool = anime_db, anime_desc
-        elif category == "真實素人":
-            db, pool = amateur_db, amateur_desc
-        elif category == "裏番動畫":
-            db, pool = hanime_db, hanime_desc
-        else:
-            db, pool = actress_db, desc_pool
+        """片單庫：你可以隨時在這裡新增更多你推薦的番號"""
+        if category == "隨機":
+            category = random.choice(["日本精選", "歐美精選", "動漫改編", "真實素人", "裏番動畫", "網路近期熱門"])
+
+        if category == "網路近期熱門":
+            web_av = await self.fetch_web_trending()
+            if web_av: return web_av
+            category = "日本精選" 
+
+        # 進入嚴格驗證迴圈：最多嘗試 10 次，直到確認該車牌能成功抓到直達網址！
+        for _ in range(10):
+            result_av = None
             
-        actress = random.choice(list(db.keys()))
-        code = random.choice(db[actress])
-        desc = random.choice(pool)
-        result_av = {"code": code, "actress": actress, "desc": desc, "category": category}
+            if random.random() < 0.3:
+                async with self.bot.db.db.execute('SELECT id, user_id, code, actress FROM nsfw_submissions WHERE category = ? ORDER BY RANDOM() LIMIT 1', (category,)) as cursor:
+                    row = await cursor.fetchone()
+                    if row:
+                        submission_id, submitter_id, code, actress = row
+                        result_av = {"id": submission_id, "submitter_id": submitter_id, "code": code, "actress": f"{actress} *(💬 群友推薦)*", "category": category}
 
-        if category == "日本精選":
-            if code == "SSNI-432": result_av['desc'] = "經典必看神作，引退前的神級作品之一。"
-            elif code == "IPX-192": result_av['desc'] = "小惡魔專屬，這部絕對能滿足你的期待。"
-            elif code == "STARS-246": result_av['desc'] = "頂級神顏，回歸後話題性最高的一部。"
-            elif code == "FSDSS-077": result_av['desc'] = "話題女王，極致誘惑的頂尖展現。"
-            elif code == "ADN-348": result_av['desc'] = "充滿透明感的清純系代表作。"
+            if not result_av:
+                if category == "歐美精選": db = western_db
+                elif category == "動漫改編": db = anime_db
+                elif category == "真實素人": db = amateur_db
+                elif category == "裏番動畫": db = hanime_db
+                else: db = actress_db
+                    
+                actress = random.choice(list(db.keys()))
+                code = random.choice(db[actress])
+                result_av = {"code": code, "actress": actress, "category": category}
 
-        if not code.lower().startswith("http") and category in ["日本精選", "真實素人", "動漫改編", "裏番動畫"]:
-            res = await self.find_direct_url_from_code(code, category)
-            if res[0]: result_av['url'] = res[0]
-            if res[1]: result_av['thumbnail'] = res[1]
+            # 開始驗證網址是否有效
+            if not result_av['code'].lower().startswith("http") and category in ["日本精選", "真實素人", "動漫改編", "裏番動畫", "歐美精選"]:
+                res = await self.find_direct_url_from_code(result_av['code'], category)
+                if res[0]: # 確認有成功抓到直達網址才回傳！
+                    result_av['url'] = res[0]
+                    if res[1]: result_av['thumbnail'] = res[1]
+                    return result_av
+            else:
+                return result_av # 若直接是提供網址，則相信它是有效的
+                
         return result_av
 
     @commands.hybrid_command(name="setnsfw", aliases=["設定老司機頻道", "設定我很好片頻道"], help="【管理員】設定每日推播成人片的專屬頻道")
@@ -530,7 +472,7 @@ class NSFW(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.hybrid_command(name="submit_av", aliases=["推薦車牌", "我要發車"], help="推薦你喜歡的片單給「我很好片」！")
-    @app_commands.describe(code="番號 / 車牌", actress="女優名稱 / 主演", desc="一句話點評推薦理由", category="選擇分類")
+    @app_commands.describe(code="番號 / 車牌", actress="女優名稱 / 主演", category="選擇分類")
     @app_commands.choices(category=[
         app_commands.Choice(name="🇯🇵 日本精選", value="日本精選"),
         app_commands.Choice(name="🇺🇸 歐美精選", value="歐美精選"),
@@ -539,17 +481,17 @@ class NSFW(commands.Cog):
         app_commands.Choice(name="🔞 裏番動畫 (H-Anime)", value="裏番動畫"),
         app_commands.Choice(name="🌐 網路近期熱門", value="網路近期熱門")
     ])
-    async def submit_av(self, ctx, code: str, actress: str, desc: str, category: str = "日本精選"):
+    async def submit_av(self, ctx, code: str, actress: str, category: str = "日本精選"):
         if not ctx.channel.is_nsfw():
             return await ctx.send(embed=discord.Embed(description="❌ 這裡不是 NSFW 頻道，請移步至「我很好片」專區！", color=discord.Color.red()), ephemeral=True)
             
         # 如果使用者輸入的是網址，就保留原大小寫；若是番號則轉大寫
         code_val = code if code.lower().startswith("http") else code.upper()
-        await self.bot.db.db.execute('INSERT INTO nsfw_submissions (user_id, code, actress, description, category) VALUES (?, ?, ?, ?, ?)', (ctx.author.id, code_val, actress, desc, category))
+        await self.bot.db.db.execute('INSERT INTO nsfw_submissions (user_id, code, actress, description, category) VALUES (?, ?, ?, ?, ?)', (ctx.author.id, code_val, actress, "", category))
         await self.bot.db.db.commit()
         
         display_code = f"點我前往連結" if code_val.lower().startswith("http") else f"`{code_val}`"
-        embed = discord.Embed(title="✅ 感謝老司機帶路！", description=f"已成功收錄您的推薦！未來大家抽籤時有機會抽到這部喔！\n\n**分類：** {category}\n**番號/連結：** {display_code}\n**女優：** {actress}\n**點評：** {desc}", color=discord.Color.green())
+        embed = discord.Embed(title="✅ 感謝老司機帶路！", description=f"已成功收錄您的推薦！未來大家抽籤時有機會抽到這部喔！\n\n**分類：** {category}\n**番號/連結：** {display_code}\n**女優：** {actress}", color=discord.Color.green())
         await ctx.send(embed=embed)
 
     @commands.hybrid_command(name="av", aliases=["推薦番號", "抽車牌"], help="隨機推薦一部經典成人片")
@@ -617,8 +559,10 @@ class NSFW(commands.Cog):
         display_code = "🔗 點擊觀看原網址" if (av.get('url') or av['code'].lower().startswith("http")) else av['code']
         embed.add_field(name="🔑 番號 / 連結", value=f"**[{display_code}]({primary_link})**", inline=True)
         embed.add_field(name="� 女優", value=f"{av['actress']}", inline=True)
-        embed.add_field(name="📝 點評 / 標題", value=av['desc'], inline=False)
         
+        if av.get('title'):
+            embed.add_field(name="📝 標題", value=av['title'], inline=False)
+            
         if not av.get('url') and not av['code'].lower().startswith("http"):
             search_links = get_search_links(av['code'], av['category'])
             embed.add_field(name="🔗 快速搜尋", value=search_links, inline=False)
