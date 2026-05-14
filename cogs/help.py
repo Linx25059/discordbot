@@ -10,10 +10,10 @@ class Help(commands.Cog):
         await self.bot.db.db.commit()
 
         # --- 在這裡設定最新版本的更新內容 ---
-        self.current_version = "1.5"
+        self.current_version = "1.3"
         self.changelog_title = f"✨ 機器人更新日誌 (v{self.current_version})"
         self.changelog_text = (
-            "**🚀 v1.5 重大更新發布！**\n"
+            "**🚀 v1.3 重大更新發布！**\n"
             "• 🏦 **全新銀行系統：** 新增存款 (`/deposit`) 與提款 (`/withdraw`) 功能，每日凌晨會發放 1% 存款利息！更有全服富豪榜 (`/richest`) 等你來挑戰！\n"
             "• 🖼️ **圖片惡搞升級：** 新增打碼 (`/pixelate`)、遺照 (`/wasted`)、詛咒負片 (`/invert`) 與近視模糊 (`/blur`) 功能！\n"
             "• 💸 **經濟與升級平衡：** 聊天隨機掉落金幣彩蛋，升級大紅包發放！股市也調整為更容易獲利的牛市環境。\n"
