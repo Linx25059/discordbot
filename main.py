@@ -82,7 +82,11 @@ async def on_command_completion(ctx):
 async def sync_commands(ctx, scope: str = ""):
     await ctx.send("⏳ 正在同步斜線指令，這可能需要幾秒鐘...")
     try:
-        if scope == "here":
+        if scope == "clear":
+            bot.tree.clear_commands(guild=ctx.guild)
+            await bot.tree.sync(guild=ctx.guild)
+            await ctx.send("🧹 已成功清除當前伺服器的專屬指令！（這能完美解決指令重複、舊指令卡住的問題）\n👉 **請按 `Ctrl + R` 或重新載入 Discord 來讓畫面更新。**")
+        elif scope == "here":
             bot.tree.copy_global_to(guild=ctx.guild)
             synced = await bot.tree.sync(guild=ctx.guild)
             await ctx.send(f"✅ 同步完成！已更新 {len(synced)} 個指令。\n👉 **請按 `Ctrl + R` 或重新載入 Discord 來讓指令生效。**")

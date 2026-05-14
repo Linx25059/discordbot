@@ -110,6 +110,32 @@ class Weather(commands.Cog):
     async def before_daily_weather(self):
         await self.bot.wait_until_ready()
 
+    def translate_weather(self, eng_desc: str) -> str:
+        """內建天氣翻譯字典，補足 API 的中文翻譯缺失"""
+        mapping = {
+            "Clear": "晴朗", "Sunny": "晴天", "Partly cloudy": "多雲時晴", "Cloudy": "多雲",
+            "Overcast": "陰天", "Mist": "薄霧", "Patchy rain possible": "局部降雨", "Patchy snow possible": "局部降雪",
+            "Patchy sleet possible": "局部雨夾雪", "Patchy freezing drizzle possible": "局部凍毛毛雨",
+            "Thundery outbreaks possible": "可能有雷陣雨", "Blowing snow": "吹雪", "Blizzard": "暴風雪",
+            "Fog": "霧", "Freezing fog": "凍霧", "Patchy light drizzle": "局部輕毛毛雨", "Light drizzle": "輕微毛毛雨",
+            "Freezing drizzle": "凍毛毛雨", "Heavy freezing drizzle": "強凍毛毛雨", "Patchy light rain": "局部小雨",
+            "Light rain": "小雨", "Moderate rain at times": "偶有中雨", "Moderate rain": "中雨",
+            "Heavy rain at times": "偶有大雨", "Heavy rain": "大雨", "Light freezing rain": "輕微凍雨",
+            "Moderate or heavy freezing rain": "中度或大凍雨", "Light sleet": "小雨夾雪", "Moderate or heavy sleet": "中大雨夾雪",
+            "Patchy light snow": "局部小雪", "Light snow": "小雪", "Patchy moderate snow": "局部中雪",
+            "Moderate snow": "中雪", "Patchy heavy snow": "局部大雪", "Heavy snow": "大雪", "Ice pellets": "冰雹",
+            "Light rain shower": "小陣雨", "Moderate or heavy rain shower": "中大陣雨", "Torrential rain shower": "暴陣雨",
+            "Light sleet showers": "小陣雨夾雪", "Moderate or heavy sleet showers": "中大陣雨夾雪",
+            "Light snow showers": "小陣雪", "Moderate or heavy snow showers": "中大陣雪",
+            "Light showers of ice pellets": "小冰雹陣雨", "Moderate or heavy showers of ice pellets": "中大冰雹陣雨",
+            "Patchy light rain with thunder": "局部小雷陣雨", "Moderate or heavy rain with thunder": "中大雷陣雨",
+            "Patchy light snow with thunder": "局部小雷陣雪", "Moderate or heavy snow with thunder": "中大雷陣雪",
+            "Moderate or heavy rain in area with thunder": "局部中大雷陣雨", "Patchy light rain in area with thunder": "局部小雷陣雨",
+            "Thundery outbreaks in nearby": "附近有雷陣雨"
+        }
+        text = eng_desc.strip()
+        return mapping.get(text, mapping.get(text.capitalize(), text))
+
     async def get_weather_embed(self, location: str, is_default: bool = False, is_daily: bool = False):
         try:
             # 處理使用者輸入的空格 (例如 "台北市 信義區" 轉換成 URL 安全格式)
@@ -128,12 +154,27 @@ class Weather(commands.Cog):
                     wind = current.get('windspeedKmph', '未知')
                     precip = current.get('precipMM', '0.0')
                         
-                    # 優先抓取中文天氣描述
-                    desc = "未知"
-                    if 'lang_zh-tw' in current and current['lang_zh-tw']:
-                        desc = current['lang_zh-tw'][0].get('value', '未知')
-                    elif 'weatherDesc' in current and current['weatherDesc']:
-                        desc = current['weatherDesc'][0].get('value', '未知')
+                    # 內部輔助函式：用來獲取最精準的中文天氣描述
+                    def get_zh_desc(weather_node):
+                        eng_desc = ""
+                        if 'weatherDesc' in weather_node and weather_node['weatherDesc']:
+                            eng_desc = weather_node['weatherDesc'][0].get('value', '').strip()
+                            
+                        # 先查我們的字典
+                        translated = self.translate_weather(eng_desc)
+                        if translated != eng_desc:
+                            return translated
+                            
+                        # 字典沒有的話，再看看 API 有沒有給其他中文翻譯
+                        for lang_key in ['lang_zh-tw', 'lang_zh', 'lang_zh-cn']:
+                            if lang_key in weather_node and weather_node[lang_key]:
+                                zh_val = weather_node[lang_key][0].get('value', '').strip()
+                                if zh_val:
+                                    return zh_val
+                                    
+                        return eng_desc if eng_desc else "未知"
+
+                    desc = get_zh_desc(current)
 
                     # --- 動態日夜與縮圖判斷邏輯 ---
                     # 1. 抓取日出與日落時間
@@ -202,13 +243,8 @@ class Weather(commands.Cog):
                                     pass
                             
                             # 取中午時段的天氣描述
-                            day_desc = "未知"
                             midday = hourly[4] if len(hourly) > 4 else (hourly[0] if hourly else {})
-                                
-                            if 'lang_zh-tw' in midday and midday['lang_zh-tw']:
-                                day_desc = midday['lang_zh-tw'][0].get('value', '未知')
-                            elif 'weatherDesc' in midday and midday['weatherDesc']:
-                                day_desc = midday['weatherDesc'][0].get('value', '未知')
+                            day_desc = get_zh_desc(midday)
 
                             # 將未來天氣轉為更緊湊的一行格式
                             forecast_text += f"`{short_date}` {day_desc} ({min_t}~{max_t}°C) ｜ ☔ {max_chance_of_rain}%\n"
