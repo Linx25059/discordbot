@@ -2,26 +2,18 @@ import discord
 from discord.ext import commands
 import random
 from datetime import datetime, timedelta
-import aiosqlite
 from typing import Optional
 
 class Leveling(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.db = None
         
         # 避免玩家狂刷訊息洗經驗值，加入冷卻時間字典 (紀錄最後發話時間)
         self.cooldowns = {} 
 
     async def cog_load(self):
-        # 改用 aiosqlite，避免監聽器卡死主執行緒
-        self.db = await aiosqlite.connect('bot_database.db', timeout=10.0)
-        await self.db.execute('''CREATE TABLE IF NOT EXISTS leveling (guild_id INTEGER, user_id INTEGER, xp INTEGER, level INTEGER, PRIMARY KEY (guild_id, user_id))''')
-        await self.db.commit()
-
-    async def cog_unload(self):
-        if self.db:
-            await self.db.close()
+        await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS leveling (guild_id INTEGER, user_id INTEGER, xp INTEGER, level INTEGER, PRIMARY KEY (guild_id, user_id))''')
+        await self.bot.db.db.commit()
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -40,11 +32,11 @@ class Leveling(commands.Cog):
         user_id = message.author.id
 
         # 從資料庫獲取目前的等級
-        async with self.db.execute('SELECT xp, level FROM leveling WHERE guild_id = ? AND user_id = ?', (guild_id, user_id)) as cursor:
+        async with self.bot.db.db.execute('SELECT xp, level FROM leveling WHERE guild_id = ? AND user_id = ?', (guild_id, user_id)) as cursor:
             result = await cursor.fetchone()
 
         if result is None:
-            await self.db.execute('INSERT INTO leveling (guild_id, user_id, xp, level) VALUES (?, ?, ?, ?)', (guild_id, user_id, 0, 1))
+            await self.bot.db.db.execute('INSERT INTO leveling (guild_id, user_id, xp, level) VALUES (?, ?, ?, ?)', (guild_id, user_id, 0, 1))
             xp, level = 0, 1
         else:
             xp, level = result
@@ -57,7 +49,7 @@ class Leveling(commands.Cog):
         if new_xp >= xp_needed:
             new_level = level + 1
             new_xp -= xp_needed # 扣除升級耗費的 XP
-            await self.db.execute('UPDATE leveling SET xp = ?, level = ? WHERE guild_id = ? AND user_id = ?', (new_xp, new_level, guild_id, user_id))
+            await self.bot.db.db.execute('UPDATE leveling SET xp = ?, level = ? WHERE guild_id = ? AND user_id = ?', (new_xp, new_level, guild_id, user_id))
             
             # --- 新增：升級發大財 (等級 * 1000 金幣) ---
             reward_coins = new_level * 1000
@@ -66,7 +58,7 @@ class Leveling(commands.Cog):
             embed = discord.Embed(title="🆙 升級通知", description=f"🎉 恭喜 {message.author.mention}，你升級到 **Lv.{new_level}** 囉！\n💰 **升級獎勵：** 獲得了 **{reward_coins:,}** 金幣！", color=discord.Color.gold())
             await message.channel.send(embed=embed)
         else:
-            await self.db.execute('UPDATE leveling SET xp = ? WHERE guild_id = ? AND user_id = ?', (new_xp, guild_id, user_id))
+            await self.bot.db.db.execute('UPDATE leveling SET xp = ? WHERE guild_id = ? AND user_id = ?', (new_xp, guild_id, user_id))
             
         # --- 新增：聊天隨機金幣掉落 (15% 機率) ---
         if random.random() < 0.15:
@@ -95,12 +87,12 @@ class Leveling(commands.Cog):
             except:
                 pass
                 
-        await self.db.commit()
+        await self.bot.db.db.commit()
 
     @commands.hybrid_command(name="rank", aliases=["等級", "xp"], help="查看自己的等級與經驗值進度")
     async def rank(self, ctx, member: discord.Member = None):
         member = member or ctx.author
-        async with self.db.execute('SELECT xp, level FROM leveling WHERE guild_id = ? AND user_id = ?', (ctx.guild.id, member.id)) as cursor:
+        async with self.bot.db.db.execute('SELECT xp, level FROM leveling WHERE guild_id = ? AND user_id = ?', (ctx.guild.id, member.id)) as cursor:
             result = await cursor.fetchone()
         
         if result is None:
@@ -125,7 +117,7 @@ class Leveling(commands.Cog):
         
     @commands.hybrid_command(name="leaderboard", aliases=["排行榜", "top"], help="查看伺服器最活躍成員等級排行榜")
     async def leaderboard(self, ctx):
-        async with self.db.execute('SELECT user_id, xp, level FROM leveling WHERE guild_id = ? ORDER BY level DESC, xp DESC LIMIT 10', (ctx.guild.id,)) as cursor:
+        async with self.bot.db.db.execute('SELECT user_id, xp, level FROM leveling WHERE guild_id = ? ORDER BY level DESC, xp DESC LIMIT 10', (ctx.guild.id,)) as cursor:
             results = await cursor.fetchall()
         
         if not results:
