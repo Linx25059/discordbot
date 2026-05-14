@@ -10,13 +10,13 @@ class Help(commands.Cog):
         await self.bot.db.db.commit()
 
         # --- 在這裡設定最新版本的更新內容 ---
-        self.current_version = "1.3"
+        self.current_version = "1.5"
         self.changelog_title = f"✨ 機器人更新日誌 (v{self.current_version})"
         self.changelog_text = (
-            "**🚀 v1.3 介面大升級發布！**\n"
-            "• 🛡️ **社群健康化：** 移除 NSFW 模組，打造更安全的優質社群環境！\n"
-            "• � **指令選單翻新：** `/help` 指令清單全面升級！更精細劃分為六大領域，找功能更直覺方便。\n"
-            "• ✨ **模組完整收錄：** 新增「系統與資訊」分類，現在你能更輕鬆地查看機器人狀態與更新日誌囉！\n"
+            "**🚀 v1.5 重大更新發布！**\n"
+            "• 🏦 **全新銀行系統：** 新增存款 (`/deposit`) 與提款 (`/withdraw`) 功能，每日凌晨會發放 1% 存款利息！更有全服富豪榜 (`/richest`) 等你來挑戰！\n"
+            "• 🖼️ **圖片惡搞升級：** 新增打碼 (`/pixelate`)、遺照 (`/wasted`)、詛咒負片 (`/invert`) 與近視模糊 (`/blur`) 功能！\n"
+            "• 💸 **經濟與升級平衡：** 聊天隨機掉落金幣彩蛋，升級大紅包發放！股市也調整為更容易獲利的牛市環境。\n"
         )
 
         # 啟動時檢查是否需要推播更新
@@ -37,6 +37,7 @@ class Help(commands.Cog):
                 "GameRouletteCog": "🎰 遊戲抽籤面板",
                 "Gamble": "🎲 娛樂城與賭博",
                 "Fun": "🎁 抽獎大放送",
+                "Giveaway": "🎉 限時抽獎系統",
                 "JerkCounter": "💦 趣味計數"
             },
             "💸 經濟與財富": {
@@ -47,9 +48,16 @@ class Help(commands.Cog):
                 "Leveling": "🏅 等級排行榜",
                 "Profile": "🪪 個人專屬檔案"
             },
+            "🛠️ 實用工具與自動化": {
+                "LinkFixer": "🔗 社群連結修復",
+                "AutoVoice": "🎙️ 動態語音頻道",
+                "Broadcast": "📡 新聞與遊戲推播",
+                "AutoReply": "💬 自動回覆系統"
+            },
             "ℹ️ 系統與資訊": {
                 "Info": "📜 關於與狀態",
-                "Help": "✨ 更新與幫助"
+                "Help": "✨ 更新與幫助",
+                "BugReport": "🚨 報錯單系統"
             }
         }
 
