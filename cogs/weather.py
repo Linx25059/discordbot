@@ -131,7 +131,8 @@ class Weather(commands.Cog):
             "Patchy light rain with thunder": "局部小雷陣雨", "Moderate or heavy rain with thunder": "中大雷陣雨",
             "Patchy light snow with thunder": "局部小雷陣雪", "Moderate or heavy snow with thunder": "中大雷陣雪",
             "Moderate or heavy rain in area with thunder": "局部中大雷陣雨", "Patchy light rain in area with thunder": "局部小雷陣雨",
-            "Thundery outbreaks in nearby": "附近有雷陣雨"
+            "Thundery outbreaks in nearby": "附近有雷陣雨",
+            "Patchy rain nearby": "附近有局部降雨"
         }
         text = eng_desc.strip()
         return mapping.get(text, mapping.get(text.capitalize(), text))
