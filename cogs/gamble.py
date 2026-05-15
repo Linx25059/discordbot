@@ -49,7 +49,7 @@ def get_card_display(card):
     if card in card_emojis:
         return card_emojis[card]
         
-    suit = card
+    suit = card[0]
     rank = card[1:]
     return f"` {suit} {rank:<2} `" # 使用 inline code block 讓寬度固定，看起來更像實體牌
 
@@ -884,12 +884,12 @@ class Gamble(commands.Cog):
         await roll_msg.edit(embed=embed, view=view)
 
     async def start_blackjack_lobby(self, channel, host, amount):
-        """獨立的 21 點牌桌發起器，完美避開指令逾時問題"""
+        """獨立的多人 21 點牌桌發起器，完美避開斜線指令逾時限制"""
         await self.bot.db.update_balance(host.id, -amount)
 
         embed = discord.Embed(title="🃏 皇家 21 點 - 招募牌咖中", color=discord.Color.dark_green())
         embed.description = (
-            f"💰 **固定賭注：** `{amount}` 金幣\n"
+            f"💰 **固定賭注：** `{amount:,}` 金幣\n"
             f"👥 **目前玩家：** `1/5` 人\n"
             "──────────────────\n"
             f"👤 {host.mention}"
@@ -908,8 +908,9 @@ class Gamble(commands.Cog):
         if await self.bot.db.get_balance(ctx.author.id) < amount:
             return await ctx.send(embed=discord.Embed(description=f"❌ 你的餘額不足以開桌！需要 **{amount:,}** 金幣。", color=discord.Color.red()), ephemeral=True)
 
-        # 若為斜線指令，先回覆並關閉互動，後續使用一般訊息發送
+        # 若為斜線指令，先回覆並關閉互動，後續使用一般訊息發送，打破 15 分鐘限制
         if ctx.interaction:
+            await ctx.defer()
             await ctx.send("🃏 **牌桌準備中...**", ephemeral=True, delete_after=3.0)
             
         await self.start_blackjack_lobby(ctx.channel, ctx.author, amount)
