@@ -45,13 +45,12 @@ class Help(commands.Cog):
         await self.bot.db.db.commit()
 
         # --- 在這裡設定最新版本的更新內容 ---
-        self.current_version = "1.3"
+        self.current_version = "1.4"
         self.changelog_title = f"✨ 機器人更新日誌 (v{self.current_version})"
         self.changelog_text = (
-            "**🚀 v1.3 重大更新發布！**\n"
-            "• 🏦 **全新銀行系統：** 新增存款 (`/deposit`) 與提款 (`/withdraw`) 功能，每日凌晨會發放 1% 存款利息！更有全服富豪榜 (`/richest`) 等你來挑戰！\n"
-            "• 🖼️ **圖片惡搞升級：** 新增打碼 (`/pixelate`)、遺照 (`/wasted`)、詛咒負片 (`/invert`) 與近視模糊 (`/blur`) 功能！\n"
-            "• 💸 **經濟與升級平衡：** 聊天隨機掉落金幣彩蛋，升級大紅包發放！股市也調整為更容易獲利的牛市環境。\n"
+            "**🚀 v1.4 重大更新發布！**\n"
+            "• 🃏 **賭場修復與升級：** 修復 21 點雙重扣款與結算按鈕失效問題，並支援多人自訂下注金額。\n"
+            "• 🛠️ **系統管理優化：** 完善幫助選單模組，補齊了管理員專屬工具及所有的模組指令介紹。\n"
         )
 
         # 啟動時檢查是否需要推播更新
@@ -71,8 +70,7 @@ class Help(commands.Cog):
             "🎮 遊戲與娛樂": {
                 "GameRouletteCog": "🎰 遊戲抽籤面板",
                 "Gamble": "🎲 娛樂城與賭博",
-                "Fun": "🎁 抽獎大放送",
-                "Giveaway": "🎉 限時抽獎系統",
+                "Fun": "🎁 抽獎與活動",
                 "JerkCounter": "💦 趣味計數"
             },
             "💸 經濟與財富": {
@@ -87,7 +85,9 @@ class Help(commands.Cog):
                 "LinkFixer": "🔗 社群連結修復",
                 "AutoVoice": "🎙️ 動態語音頻道",
                 "Broadcast": "📡 新聞與遊戲推播",
-                "AutoReply": "💬 自動回覆系統"
+                "AutoReply": "💬 自動回覆系統",
+                "Logger": "📝 伺服器日誌紀錄",
+                "Admin": "🛡️ 伺服器與機器人管理"
             },
             "ℹ️ 系統與資訊": {
                 "Info": "📜 關於與狀態",
