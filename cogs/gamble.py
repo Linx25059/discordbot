@@ -626,11 +626,6 @@ class TreasureBetModal(discord.ui.Modal, title='💸 跟注或加注'):
         self.game_view.pot += bet
         self.game_view.min_bet = bet
 
-        is_owner = await cog.bot.is_owner(interaction.user)
-        if is_owner and self.tile_idx != self.game_view.winning_idx:
-            # 老闆特權：如果點錯了，偷偷把隱藏寶石移到你點的這格！必定中獎！
-            self.game_view.winning_idx = self.tile_idx
-
         btn = self.game_view.buttons[self.tile_idx]
         btn.disabled = True
 
@@ -649,7 +644,12 @@ class TreasureBetModal(discord.ui.Modal, title='💸 跟注或加注'):
             for idx, b in enumerate(self.game_view.buttons):
                 b.disabled = True
                 if not b.emoji:
-                    b.emoji = "💥" if idx != self.game_view.winning_idx else "💎"
+                    if idx == self.game_view.winning_idx:
+                        b.emoji = "💎"
+                        b.style = discord.ButtonStyle.success
+                    else:
+                        b.emoji = "💥"
+                        b.style = discord.ButtonStyle.secondary
             
             self.game_view.add_play_again_button()
 
@@ -681,7 +681,7 @@ class TreasureHuntView(discord.ui.View):
         
         self.buttons = []
         for i in range(20):
-            btn = discord.ui.Button(label="\u200b", style=discord.ButtonStyle.secondary, row=i//5, custom_id=f"tile_{i}")
+            btn = discord.ui.Button(label="\u200b", style=discord.ButtonStyle.primary, row=i//5, custom_id=f"tile_{i}")
             btn.callback = self.make_callback(i)
             self.buttons.append(btn)
             self.add_item(btn)
