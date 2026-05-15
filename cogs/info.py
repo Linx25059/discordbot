@@ -25,12 +25,12 @@ class Info(commands.Cog):
         )
         embed.add_field(
             name="🎵 影音與趣味互動", 
-            value="支援高音質 YouTube 音樂點播 (`/play`)，帶有控制面板與待播清單。\n提供多種惡搞頭貼指令 (`/pixelate`, `/wasted` 等) 與 `/meme` 迷因圖產生器，還有美食手搖推薦，隨時活絡氣氛！", 
+            value="支援高音質 YouTube 音樂點播 (`/play`)，帶有控制面板與待播清單。\n提供多種惡搞頭貼指令 (`/pixelate` 等) 與迷因圖產生器。還有專屬的美食與手搖飲推薦 (`/eat`, `/drink`)、金幣抽獎 (`/giveaway`) 與趣味計數排行 (`/jerkboard`)！", 
             inline=False
         )
         embed.add_field(
             name="🛠️ 實用工具與管理", 
-            value="自動修復社群連結預覽、自動建立與刪除動態語音頻道。\n支援專屬地點天氣綁定與每日早晨推播 (`/dailyweather`)，以及完善的報錯單 (Ticket) 系統，幫助管理員輕鬆維護伺服器。", 
+            value="內建自訂關鍵字回覆 (`/addreply`) 與完整的伺服器日誌系統 (`/setlog`)。\n自動修復社群連結預覽、自動建立動態語音頻道，並支援報錯單 (Ticket) 系統與天氣推播，幫助管理員輕鬆維護伺服器。", 
             inline=False
         )
         
