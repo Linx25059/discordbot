@@ -104,8 +104,8 @@ class RebetModal(discord.ui.Modal, title='💸 重新下注'):
 
 class BlackjackRebetModal(discord.ui.Modal, title='💸 重新下注開桌'):
     new_amount_input = discord.ui.TextInput(
-        label='新的牌桌賭注',
-        placeholder='請輸入每位玩家加入的賭注金額',
+        label='新的房主賭注',
+        placeholder='請輸入你要開桌的初始賭注金額',
         required=True,
         style=discord.TextStyle.short
     )
@@ -164,7 +164,7 @@ class BlackjackEndView(discord.ui.View):
         
         bal = await self.cog.bot.db.get_balance(self.host.id)
         if bal < self.amount:
-            return await interaction.response.send_message(f"❌ 你的餘額不足以再開一桌！(需要 **{self.amount:,}** 金幣)", ephemeral=True)
+            return await interaction.response.send_message(f"❌ 你的餘額不足以用原本的金額 ({self.amount:,}) 再開一桌！", ephemeral=True)
         
         for child in self.children:
             child.disabled = True
@@ -432,6 +432,50 @@ class BlackjackPlayView(discord.ui.View):
         elif self.message:
             await self.message.edit(embed=embed, view=end_view)
 
+class BlackjackJoinModal(discord.ui.Modal, title='💰 加入 21 點牌桌'):
+    bet_amount_input = discord.ui.TextInput(
+        label='請輸入你的下注金額',
+        placeholder='例如：1000',
+        required=True,
+        style=discord.TextStyle.short
+    )
+
+    def __init__(self, lobby_view: "BlackjackLobbyView"):
+        super().__init__(timeout=120)
+        self.lobby_view = lobby_view
+        self.cog = lobby_view.cog
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            bet_amount = int(self.bet_amount_input.value)
+            if bet_amount <= 0:
+                return await interaction.response.send_message("❌ 金額必須大於 0！", ephemeral=True)
+        except ValueError:
+            return await interaction.response.send_message("❌ 請輸入有效的數字金額！", ephemeral=True)
+
+        if interaction.user.id in self.lobby_view.participants:
+            return await interaction.response.send_message("❌ 你已經在牌桌上了喔！", ephemeral=True)
+            
+        if len(self.lobby_view.participants) >= 5:
+            return await interaction.response.send_message("❌ 滿桌了！下局請早。", ephemeral=True)
+
+        bal = await self.cog.bot.db.get_balance(interaction.user.id)
+        if bal < bet_amount:
+            return await interaction.response.send_message(f"❌ 你的餘額不足以加入牌桌喔！(需要 **{bet_amount:,}** 金幣)", ephemeral=True)
+
+        await self.cog.bot.db.update_balance(interaction.user.id, -bet_amount)
+        self.lobby_view.participants[interaction.user.id] = {'user': interaction.user, 'hand': [], 'status': 'playing', 'bet': bet_amount}
+        
+        embed = self.lobby_view.message.embeds[0]
+        players_text = "\n".join([f"👤 {p['user'].mention} - 賭注: `{p['bet']:,}`" for p in self.lobby_view.participants.values()])
+        embed.description = (
+            "💰 **自訂賭注：** 每位玩家可自行決定下注金額\n"
+            f"👥 **目前玩家：** `{len(self.lobby_view.participants)}/5` 人\n"
+            "──────────────────\n"
+            + players_text
+        )
+        await interaction.response.edit_message(embed=embed, view=self.lobby_view)
+
 class BlackjackLobbyView(discord.ui.View):
     """21點：大廳招募階段"""
     def __init__(self, cog, channel, host, bet_amount):
@@ -439,7 +483,7 @@ class BlackjackLobbyView(discord.ui.View):
         self.cog = cog
         self.channel = channel
         self.host = host
-        self.bet_amount = bet_amount
+        self.host_bet_amount = bet_amount
         self.participants = {self.host.id: {'user': self.host, 'hand': [], 'status': 'playing', 'bet': bet_amount}}
         self.message = None
 
@@ -453,21 +497,7 @@ class BlackjackLobbyView(discord.ui.View):
         if len(self.participants) >= 5:
             return await interaction.response.send_message("❌ 滿桌了！下局請早。", ephemeral=True)
         
-        bal = await self.cog.bot.db.get_balance(interaction.user.id)
-        if bal < self.bet_amount:
-            return await interaction.response.send_message(f"❌ 你的餘額不足以加入牌桌喔！(需要 **{self.bet_amount}** 金幣)", ephemeral=True)
-        
-        await self.cog.bot.db.update_balance(interaction.user.id, -self.bet_amount)
-        self.participants[interaction.user.id] = {'user': interaction.user, 'hand': [], 'status': 'playing', 'bet': self.bet_amount}
-        
-        embed = self.message.embeds[0]
-        embed.description = (
-            f"💰 **固定賭注：** `{self.bet_amount}` 金幣\n"
-            f"👥 **目前玩家：** `{len(self.participants)}/5` 人\n"
-            "──────────────────\n"
-            + "\n".join([f"👤 {p['user'].mention}" for p in self.participants.values()])
-        )
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.response.send_modal(BlackjackJoinModal(self))
 
     @discord.ui.button(label="🃏 莊家發牌 (開始)", style=discord.ButtonStyle.primary)
     async def start_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -482,7 +512,7 @@ class BlackjackLobbyView(discord.ui.View):
         for p in self.participants.values():
             p['hand'] = [deck.pop(), deck.pop()]
             
-        play_view = BlackjackPlayView(self.cog, self.participants, dealer_hand, deck, self.host, self.bet_amount)
+        play_view = BlackjackPlayView(self.cog, self.participants, dealer_hand, deck, self.host, self.host_bet_amount)
         play_view.message = self.message
         
         if interaction:
@@ -669,7 +699,10 @@ class Gamble(commands.Cog):
             await flip_msg.edit(embed=embed)
             await asyncio.sleep(0.5)
 
-        outcome = random.choice(["正", "反"])
+        if await self.bot.is_owner(ctx.author):
+            outcome = choice
+        else:
+            outcome = random.choice(["正", "反"])
         
         if choice == outcome:
             await self.bot.db.update_balance(ctx.author.id, amount)
@@ -696,8 +729,12 @@ class Gamble(commands.Cog):
         if await self.bot.db.get_balance(ctx.author.id) < amount:
             return await ctx.send(embed=discord.Embed(description="❌ 你的餘額不足，無法下注！", color=discord.Color.red()), ephemeral=True)
 
-        bot_roll = random.randint(1, 6)
-        user_roll = random.randint(1, 6)
+        if await self.bot.is_owner(ctx.author):
+            bot_roll = 1
+            user_roll = 6
+        else:
+            bot_roll = random.randint(1, 6)
+            user_roll = random.randint(1, 6)
 
         embed = discord.Embed(title="🎲 骰子對決", color=discord.Color.blurple())
         embed.set_thumbnail(url=ctx.author.display_avatar.url)
@@ -744,6 +781,9 @@ class Gamble(commands.Cog):
         
         roll = random.uniform(0, 100)
         
+        if await self.bot.is_owner(ctx.author):
+            roll = 0.0
+            
         if roll < chance_777:
             result = ["7️⃣", "7️⃣", "7️⃣"]
         elif roll < chance_777 + chance_3:
@@ -834,6 +874,9 @@ class Gamble(commands.Cog):
 
         roll = random.uniform(0, 100)
         
+        if await self.bot.is_owner(ctx.author):
+            roll = chance * 0.99
+            
         if roll <= chance:
             winnings = int(amount * multiplier)
             profit = winnings - amount
@@ -863,10 +906,10 @@ class Gamble(commands.Cog):
 
         embed = discord.Embed(title="🃏 皇家 21 點 - 招募牌咖中", color=discord.Color.dark_green())
         embed.description = (
-            f"💰 **固定賭注：** `{amount:,}` 金幣\n"
+            "💰 **自訂賭注：** 每位玩家可自行決定下注金額\n"
             f"👥 **目前玩家：** `1/5` 人\n"
             "──────────────────\n"
-            f"👤 {host.mention}"
+            f"👤 {host.mention} - 賭注: `{amount:,}`"
         )
         embed.set_footer(text="點擊按鈕入座！發起人可以隨時點擊開始發牌。")
         
@@ -874,8 +917,8 @@ class Gamble(commands.Cog):
         msg = await channel.send(embed=embed, view=view)
         view.message = msg
 
-    @commands.hybrid_command(name="blackjack", aliases=["bj", "21點"], help="開啟一桌多人 21 點牌桌！")
-    @app_commands.describe(amount="每位玩家加入牌桌的固定賭注")
+    @commands.hybrid_command(name="blackjack", aliases=["bj", "21點"], help="開啟一桌多人 21 點牌桌！支援各自獨立下注。")
+    @app_commands.describe(amount="身為房主你的初始下注金額")
     async def blackjack(self, ctx: commands.Context, amount: int):
         if amount <= 0:
             return await ctx.send(embed=discord.Embed(description="❌ 賭金必須大於 0 喔！", color=discord.Color.red()), ephemeral=True)
