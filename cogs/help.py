@@ -36,6 +36,52 @@ class HelpView(discord.ui.View):
             return False
         return True
 
+# --- 管理員幫助選單下拉控制 UI ---
+class AdminHelpSelect(discord.ui.Select):
+    def __init__(self, mapping, bot):
+        self.mapping = mapping
+        self.bot = bot
+        options = [discord.SelectOption(label="🏠 總覽首頁", description="回到管理員指令總覽", emoji="🏠", value="Home")]
+        for cat_name in mapping.keys():
+            options.append(discord.SelectOption(label=cat_name, description=f"查看 {cat_name} 的指令", value=cat_name))
+            
+        super().__init__(placeholder="🛡️ 請選擇一個分類來查看管理員指令...", min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        category = self.values[0]
+        if category == "Home":
+            embed = discord.Embed(title="🛠️ 管理員指令清單 (總覽)", description="以下是目前系統載入的**所有指令**（包含隱藏與管理權限指令）：\n*(提示：點擊下方選單選擇分類查看詳細說明！)*", color=discord.Color.red())
+            embed.set_thumbnail(url=self.bot.user.display_avatar.url)
+            for cat, cmds in self.mapping.items():
+                cmd_count = sum(block.count("**`/") for block in cmds)
+                embed.add_field(name=cat, value=f"包含 {cmd_count} 個指令", inline=True)
+        else:
+            embed = discord.Embed(title=f"🛠️ {category} (管理員視角)", description="", color=discord.Color.dark_red())
+            
+            # 將指令分塊加入 Embed，避免超過 4096 字元限制
+            chunk = ""
+            for block in self.mapping[category]:
+                if len(chunk) + len(block) + 2 > 4000:
+                    embed.description = chunk.strip()
+                    break
+                chunk += block + "\n\n"
+            
+            embed.description = chunk.strip()
+        
+        await interaction.response.edit_message(embed=embed)
+
+class AdminHelpView(discord.ui.View):
+    def __init__(self, mapping, author_id, bot):
+        super().__init__(timeout=180)
+        self.author_id = author_id
+        self.add_item(AdminHelpSelect(mapping, bot))
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.author_id:
+            await interaction.response.send_message("❌ 這是別人的幫助選單喔！請自己輸入 /adminhelp 來查詢。", ephemeral=True)
+            return False
+        return True
+
 class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -230,86 +276,71 @@ class Help(commands.Cog):
     @commands.hybrid_command(name="adminhelp", aliases=["allcmds", "ah"], help="【管理員專用】查看所有指令 (包含隱藏及管理權限指令)")
     @commands.has_permissions(administrator=True)
     async def admin_help(self, ctx):
-        # 整理所有指令並依據 Cog 分類
-        cogs_dict = {}
-        for cmd in self.bot.commands:
-            if cmd.cog_name == "NSFW":
-                continue
-            cog_name = cmd.cog_name or "未分類指令"
-            if cog_name not in cogs_dict:
-                cogs_dict[cog_name] = []
-            cogs_dict[cog_name].append(cmd)
+        categorized_cog_names = []
+        mapping = {} 
 
-        # --- 企業級修復：補回上次遺漏的變數初始化 ---
-        cog_display_names = {}
         for category, cogs in self.categorized_cogs.items():
-            for cog_key, desc in cogs.items():
-                cog_display_names[cog_key] = desc
-
-        embeds = []
-        current_embed = discord.Embed(
-            title="🛠️ 管理員指令清單",
-            description="以下列出目前系統載入的**所有指令**（包含隱藏與管理權限指令）：",
-            color=discord.Color.red()
-        )
-        field_count = 0
-
-        for cog_name, cmds in sorted(cogs_dict.items()):
-            cmd_list = []
-            for cmd in sorted(cmds, key=lambda c: c.name):
-                usage = f" {cmd.signature}" if cmd.signature else ""
-                hidden_tag = " 👻*(隱藏)*" if cmd.hidden else ""
+            category_cmds = []
+            for cog_name, cog_desc in cogs.items():
+                categorized_cog_names.append(cog_name)
+                cog = self.bot.get_cog(cog_name)
+                if not cog:
+                    continue
                 
-                # 標記管理權限指令
-                is_admin_cmd = False
-                for check in cmd.checks:
-                    qualname = getattr(check, '__qualname__', '')
-                    if 'has_permissions' in qualname or 'has_guild_permissions' in qualname or 'is_owner' in qualname:
-                        is_admin_cmd = True
-                        break
-                admin_tag = " 🛡️*(管理)*" if is_admin_cmd else ""
-                
-                cmd_list.append(f"**`/{cmd.name}{usage}`**{hidden_tag}{admin_tag} - {cmd.short_doc or '無說明'}")
-            
-            display_name = cog_display_names.get(cog_name, f"🧩 {cog_name}")
-            
-            # 將指令列表分塊，完美迴避 Discord 單一欄位 1024 字元的限制
-            chunk = ""
-            part_num = 1
-            for line in cmd_list:
-                if len(chunk) + len(line) + 1 > 1024:
-                    # 避免超過單一 Embed 最多 25 個欄位的限制
-                    if field_count >= 25:
-                        embeds.append(current_embed)
-                        current_embed = discord.Embed(title="🛠️ 管理員指令清單 (續)", color=discord.Color.red())
-                        field_count = 0
-                        
-                    field_name = f"📌 {display_name}" if part_num == 1 else f"📌 {display_name} (續)"
-                    current_embed.add_field(name=field_name, value=chunk, inline=False)
-                    field_count += 1
-                    chunk = line + "\n"
-                    part_num += 1
-                else:
-                    chunk += line + "\n"
+                cog_cmds = []
+                for cmd in sorted(cog.get_commands(), key=lambda c: c.name):
+                    usage = f" {cmd.signature}" if cmd.signature else ""
+                    hidden_tag = " 👻*(隱藏)*" if cmd.hidden else ""
                     
-            if chunk:
-                if field_count >= 25:
-                    embeds.append(current_embed)
-                    current_embed = discord.Embed(title="🛠️ 管理員指令清單 (續)", color=discord.Color.red())
-                    field_count = 0
+                    is_admin_cmd = False
+                    for check in cmd.checks:
+                        qualname = getattr(check, '__qualname__', '')
+                        if 'has_permissions' in qualname or 'has_guild_permissions' in qualname or 'is_owner' in qualname:
+                            is_admin_cmd = True
+                            break
+                    admin_tag = " 🛡️*(管理)*" if is_admin_cmd else ""
+                    
+                    # 優化排版，將參數與說明分層
+                    cog_cmds.append(f"**`/{cmd.name}{usage}`**{hidden_tag}{admin_tag}\n└ {cmd.short_doc or '無說明'}")
                 
-                field_name = f"📌 {display_name}" if part_num == 1 else f"📌 {display_name} (續)"
-                current_embed.add_field(name=field_name, value=chunk, inline=False)
-                field_count += 1
-
-        if field_count > 0:
-            embeds.append(current_embed)
+                if cog_cmds:
+                    category_cmds.append(f"**【 {cog_desc} 】**\n" + "\n".join(cog_cmds))
             
-        if embeds:
-            embeds[-1].set_footer(text=f"查詢者: {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
+            if category_cmds:
+                mapping[category] = category_cmds
+
+        other_cmds = []
+        for cmd in sorted(self.bot.commands, key=lambda c: c.name):
+            if cmd.cog_name == "NSFW" or cmd.cog_name in categorized_cog_names:
+                continue
+            
+            usage = f" {cmd.signature}" if cmd.signature else ""
+            hidden_tag = " 👻*(隱藏)*" if cmd.hidden else ""
+            
+            is_admin_cmd = False
+            for check in cmd.checks:
+                qualname = getattr(check, '__qualname__', '')
+                if 'has_permissions' in qualname or 'has_guild_permissions' in qualname or 'is_owner' in qualname:
+                    is_admin_cmd = True
+                    break
+            admin_tag = " 🛡️*(管理)*" if is_admin_cmd else ""
+            
+            other_cmds.append(f"**`/{cmd.name}{usage}`**{hidden_tag}{admin_tag}\n└ {cmd.short_doc or '無說明'}")
+            
+        if other_cmds:
+            mapping["📌 其他未分類指令"] = [ "\n".join(other_cmds) ]
+
+        embed = discord.Embed(title="🛠️ 管理員指令清單 (總覽)", description="以下是目前系統載入的**所有指令**（包含隱藏與管理權限指令）：\n*(提示：點擊下方選單選擇分類查看詳細說明！)*", color=discord.Color.red())
+        embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         
-        # 支援一次傳送多個 Embed 面板
-        await ctx.send(embeds=embeds, ephemeral=True)
+        for cat, cmds in mapping.items():
+            cmd_count = sum(block.count("**`/") for block in cmds)
+            embed.add_field(name=cat, value=f"包含 {cmd_count} 個指令", inline=True)
+            
+        embed.set_footer(text=f"查詢者: {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
+        
+        view = AdminHelpView(mapping, ctx.author.id, self.bot)
+        await ctx.send(embed=embed, view=view, ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(Help(bot))
