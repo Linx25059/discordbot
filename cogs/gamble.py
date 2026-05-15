@@ -209,7 +209,7 @@ class BlackjackPlayView(discord.ui.View):
             dealer_cards = "  ".join([get_card_display(c) for c in self.dealer_hand])
             dealer_text = f"**點數：** `{dealer_val}`\n**手牌：** {dealer_cards}"
         else:
-            dealer_text = f"**點數：** ` ? `\n**手牌：** {get_card_display(self.dealer_hand)}  ` 🎴 `"
+            dealer_text = f"**點數：** ` ? `\n**手牌：** {get_card_display(self.dealer_hand[0])}  ` 🎴 `"
             
         embed.add_field(name="🤵 莊家 (Dealer)", value=dealer_text, inline=False)
         embed.add_field(name="━" * 15, value="\u200b", inline=False) # 視覺分隔線
