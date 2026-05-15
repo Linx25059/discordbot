@@ -604,7 +604,7 @@ class TreasureBetModal(discord.ui.Modal, title='💸 跟注或加注'):
         self.bet_input.placeholder = f"最低需下注 {view.min_bet:,} 金幣"
 
     async def on_submit(self, interaction: discord.Interaction):
-        if self.game_view.is_finished:
+        if self.game_view.game_finished:
             return await interaction.response.send_message("❌ 遊戲已經結束囉！", ephemeral=True)
         if self.game_view.buttons[self.tile_idx].disabled:
             return await interaction.response.send_message("❌ 這個格子剛剛已經被別人搶先翻開了！", ephemeral=True)
@@ -635,7 +635,7 @@ class TreasureBetModal(discord.ui.Modal, title='💸 跟注或加注'):
         btn.disabled = True
 
         if self.tile_idx == self.game_view.winning_idx:
-            self.game_view.is_finished = True
+            self.game_view.game_finished = True
             btn.emoji = "💎"
             btn.style = discord.ButtonStyle.success
 
@@ -673,7 +673,7 @@ class TreasureHuntView(discord.ui.View):
         self.seed_amount = seed_amount
         self.pot = seed_amount
         self.min_bet = seed_amount
-        self.is_finished = False
+        self.game_finished = False
         self.message = None
         
         self.winning_idx = random.randint(0, 19)
@@ -688,7 +688,7 @@ class TreasureHuntView(discord.ui.View):
 
     def make_callback(self, i):
         async def callback(interaction: discord.Interaction):
-            if self.is_finished:
+            if self.game_finished:
                 if not interaction.response.is_done(): await interaction.response.defer()
                 return
             await interaction.response.send_modal(TreasureBetModal(self, i))
@@ -729,8 +729,8 @@ class TreasureHuntView(discord.ui.View):
         return embed
 
     async def on_timeout(self):
-        if not self.is_finished:
-            self.is_finished = True
+        if not self.game_finished:
+            self.game_finished = True
             for child in self.children: child.disabled = True
             if self.message:
                 embed = self.message.embeds[0]
