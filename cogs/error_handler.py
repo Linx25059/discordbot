@@ -71,7 +71,8 @@ class ErrorHandler(commands.Cog):
             if e.code == 40060:
                 try:
                     # 如果初始回應失敗，就改用後續訊息發送
-                    await ctx.followup.send(**kwargs)
+                    if ctx.interaction:
+                        await ctx.interaction.followup.send(**kwargs)
                 except discord.errors.HTTPException as followup_e:
                     print(f"連後續錯誤訊息都發送失敗: {followup_e}", file=sys.stderr)
             else:
