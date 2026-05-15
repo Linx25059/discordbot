@@ -82,10 +82,12 @@ class RebetModal(discord.ui.Modal, title='💸 重新下注'):
         # 停用舊訊息的按鈕
         for child in self.original_view.children:
             child.disabled = True
-        await interaction.message.edit(view=self.original_view)
-        
-        # 回應 Modal
-        await interaction.response.send_message(f"✅ 已用新賭注 **{amount:,}** 金幣重新開始一局！", ephemeral=True)
+        try:
+            await interaction.response.edit_message(view=self.original_view)
+        except Exception:
+            await interaction.response.defer()
+            
+        await interaction.followup.send(f"✅ 已用新賭注 **{amount:,}** 金幣重新開始一局！", ephemeral=True)
         
         # 準備新參數
         new_args = list(self.original_view.args)
@@ -108,7 +110,7 @@ class BlackjackRebetModal(discord.ui.Modal, title='💸 重新下注開桌'):
         style=discord.TextStyle.short
     )
 
-    def __init__(self, original_view: "BlackjackPlayView"):
+    def __init__(self, original_view: "BlackjackEndView"):
         super().__init__(timeout=180)
         self.original_view = original_view
         self.cog = original_view.cog
@@ -131,26 +133,56 @@ class BlackjackRebetModal(discord.ui.Modal, title='💸 重新下注開桌'):
         for child in self.original_view.children:
             child.disabled = True
             
-        # 安全地更新原訊息 (避免 interaction.message 為 None 的情況)
-        if interaction.message:
-            try:
-                await interaction.message.edit(view=self.original_view)
-            except: pass
-        elif self.original_view.message:
-            try:
-                await self.original_view.message.edit(view=self.original_view)
-            except: pass
-        
-        # 回應 Modal
-        await interaction.response.send_message(f"✅ 已用新賭注 **{amount:,}** 金幣重新開桌！", ephemeral=True)
+        try:
+            await interaction.response.edit_message(view=self.original_view)
+        except Exception:
+            await interaction.response.defer()
+            
+        await interaction.followup.send(f"✅ 已用新賭注 **{amount:,}** 金幣重新開桌！", ephemeral=True)
         
         try:
             # 徹底脫離原先的 ctx，直接透過 channel 發送全新的一局，避開 interaction 超時限制
-            await self.cog.start_blackjack_lobby(interaction.channel, self.host, amount)
+            await self.cog.start_blackjack_lobby(self.original_view.channel, self.host, amount)
         except Exception as e:
             from cogs.bug_report import BugReportPanelView
             embed = discord.Embed(title="🚨 重新開桌發生錯誤", description=f"```py\n{e}\n```", color=discord.Color.red())
             await interaction.followup.send(embed=embed, view=BugReportPanelView(), ephemeral=True)
+
+class BlackjackEndView(discord.ui.View):
+    """21點：遊戲結束後的結算面板 (解決原本附加在停止 View 上的失效 Bug)"""
+    def __init__(self, cog, host, amount, channel):
+        super().__init__(timeout=120)
+        self.cog = cog
+        self.host = host
+        self.amount = amount
+        self.channel = channel
+
+    @discord.ui.button(label="🔄 再開一桌", style=discord.ButtonStyle.success)
+    async def play_again_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.host.id:
+            return await interaction.response.send_message("❌ 只有原房主可以重新開桌喔！", ephemeral=True)
+        
+        bal = await self.cog.bot.db.get_balance(self.host.id)
+        if bal < self.amount:
+            return await interaction.response.send_message(f"❌ 你的餘額不足以再開一桌！(需要 **{self.amount:,}** 金幣)", ephemeral=True)
+        
+        for child in self.children:
+            child.disabled = True
+        await interaction.response.edit_message(view=self)
+        
+        try:
+            await self.cog.start_blackjack_lobby(self.channel, self.host, self.amount)
+        except Exception as e:
+            from cogs.bug_report import BugReportPanelView
+            embed = discord.Embed(title="🚨 再玩一局發生錯誤", description=f"```py\n{e}\n```", color=discord.Color.red())
+            await interaction.followup.send(embed=embed, view=BugReportPanelView(), ephemeral=True)
+
+    @discord.ui.button(label="💸 重新下注", style=discord.ButtonStyle.secondary)
+    async def rebet_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.host.id:
+            return await interaction.response.send_message("❌ 只有原房主可以重新開桌喔！", ephemeral=True)
+        
+        await interaction.response.send_modal(BlackjackRebetModal(self))
 
 # --- 21點 UI 面板 ---
 class BlackjackPlayView(discord.ui.View):
@@ -355,15 +387,6 @@ class BlackjackPlayView(discord.ui.View):
             hand_label = f" (手牌 {p['split_idx']})" if 'split_idx' in p else ""
             mention_name = f"{p['user'].mention}{hand_label}"
             
-            # 老闆特權：只要不是選擇投降，就算爆牌也強制判定獲勝！
-            is_owner = await self.cog.bot.is_owner(p['user'])
-            if is_owner and p['status'] != 'surrender':
-                win = p['bet'] * 2
-                await self.cog.bot.db.update_balance(p['user'].id, win)
-                await self.cog.update_gamble_profit(p['user'].id, p['bet'])
-                result_texts.append(f"👑 {mention_name} 發動了 **【老闆特權】**，無視規則強制獲勝！賺了 `{p['bet']}` 金幣！")
-                continue
-
             if p['status'] == 'bust':
                 await self.cog.update_gamble_profit(p['user'].id, -p['bet'])
                 result_texts.append(f"❌ {mention_name} 爆牌了，損失 `{p['bet']}` 金幣。")
@@ -399,47 +422,15 @@ class BlackjackPlayView(discord.ui.View):
         embed.add_field(name="──────────\n📊 結算結果", value="\n".join(result_texts), inline=False)
         embed.set_footer(text="遊戲結束！想玩的話可以自己開一桌喔。")
         
-        # 加入「再來一局」按鈕 (限房主)
-        if self.host:
-            play_again_btn = discord.ui.Button(label="🔄 再開一桌", style=discord.ButtonStyle.success)
-            
-            async def play_again_callback(inter: discord.Interaction):
-                if inter.user.id != self.host.id:
-                    return await inter.response.send_message("❌ 只有原房主可以重新開桌喔！", ephemeral=True)
-                
-                bal = await self.cog.bot.db.get_balance(self.host.id)
-                if bal < self.amount:
-                    return await inter.response.send_message(f"❌ 你的餘額不足以再開一桌！(需要 **{self.amount:,}** 金幣)", ephemeral=True)
-                
-                for child in self.children:
-                    child.disabled = True
-                await inter.response.edit_message(view=self)
-                
-                try:
-                    await self.cog.start_blackjack_lobby(inter.channel, self.host, self.amount)
-                except Exception as e:
-                    from cogs.bug_report import BugReportPanelView
-                    embed = discord.Embed(title="🚨 再玩一局發生錯誤", description=f"```py\n{e}\n```", color=discord.Color.red())
-                    await inter.followup.send(embed=embed, view=BugReportPanelView(), ephemeral=True)
-                
-            play_again_btn.callback = play_again_callback
-            self.add_item(play_again_btn)
-
-            rebet_btn = discord.ui.Button(label="💸 重新下注", style=discord.ButtonStyle.secondary)
-            async def rebet_callback(inter: discord.Interaction):
-                if inter.user.id != self.host.id:
-                    return await inter.response.send_message("❌ 只有原房主可以重新開桌喔！", ephemeral=True)
-                
-                await inter.response.send_modal(BlackjackRebetModal(self))
-            rebet_btn.callback = rebet_callback
-            self.add_item(rebet_btn)
+        channel = interaction.channel if interaction else (self.message.channel if self.message else None)
+        end_view = BlackjackEndView(self.cog, self.host, self.amount, channel) if self.host and channel else None
 
         if interaction:
             try:
-                await interaction.message.edit(embed=embed, view=self)
+                await interaction.message.edit(embed=embed, view=end_view)
             except: pass
         elif self.message:
-            await self.message.edit(embed=embed, view=self)
+            await self.message.edit(embed=embed, view=end_view)
 
 class BlackjackLobbyView(discord.ui.View):
     """21點：大廳招募階段"""
@@ -678,11 +669,7 @@ class Gamble(commands.Cog):
             await flip_msg.edit(embed=embed)
             await asyncio.sleep(0.5)
 
-        # 老闆特權：硬幣永遠落在你選的那一面
-        if await self.bot.is_owner(ctx.author):
-            outcome = choice
-        else:
-            outcome = random.choice(["正", "反"])
+        outcome = random.choice(["正", "反"])
         
         if choice == outcome:
             await self.bot.db.update_balance(ctx.author.id, amount)
@@ -709,13 +696,8 @@ class Gamble(commands.Cog):
         if await self.bot.db.get_balance(ctx.author.id) < amount:
             return await ctx.send(embed=discord.Embed(description="❌ 你的餘額不足，無法下注！", color=discord.Color.red()), ephemeral=True)
 
-        # 老闆特權：你永遠擲出 6，機器人永遠擲出 1
-        if await self.bot.is_owner(ctx.author):
-            bot_roll = 1
-            user_roll = 6
-        else:
-            bot_roll = random.randint(1, 6)
-            user_roll = random.randint(1, 6)
+        bot_roll = random.randint(1, 6)
+        user_roll = random.randint(1, 6)
 
         embed = discord.Embed(title="🎲 骰子對決", color=discord.Color.blurple())
         embed.set_thumbnail(url=ctx.author.display_avatar.url)
@@ -762,10 +744,6 @@ class Gamble(commands.Cog):
         
         roll = random.uniform(0, 100)
         
-        # 老闆特權：永遠將機率鎖定為 0.0，必定觸發 777 大獎
-        if await self.bot.is_owner(ctx.author):
-            roll = 0.0
-            
         if roll < chance_777:
             result = ["7️⃣", "7️⃣", "7️⃣"]
         elif roll < chance_777 + chance_3:
@@ -856,10 +834,6 @@ class Gamble(commands.Cog):
 
         roll = random.uniform(0, 100)
         
-        # 老闆特權：永遠擲出比勝率小一點點的幸運數字，無視機率保證必中
-        if await self.bot.is_owner(ctx.author):
-            roll = chance * 0.99
-            
         if roll <= chance:
             winnings = int(amount * multiplier)
             profit = winnings - amount
