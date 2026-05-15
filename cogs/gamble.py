@@ -7,6 +7,7 @@ import aiosqlite
 from typing import Optional
 import datetime
 import zoneinfo
+import math
 
 # --- 21點 輔助函式 ---
 def get_deck(num_decks=4):
@@ -589,6 +590,155 @@ class PlayAgainView(discord.ui.View):
             embed = discord.Embed(title="🚨 倍壓下注發生錯誤", description=f"```py\n{e}\n```", color=discord.Color.red())
             await interaction.followup.send(embed=embed, view=BugReportPanelView(), ephemeral=True)
 
+class TreasureBetModal(discord.ui.Modal, title='💸 跟注或加注'):
+    bet_input = discord.ui.TextInput(
+        label='你的下注金額 (跟注或加注)',
+        required=True,
+        style=discord.TextStyle.short
+    )
+
+    def __init__(self, view, tile_idx):
+        super().__init__(timeout=120)
+        self.game_view = view
+        self.tile_idx = tile_idx
+        self.bet_input.placeholder = f"最低需下注 {view.min_bet:,} 金幣"
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if self.game_view.is_finished:
+            return await interaction.response.send_message("❌ 遊戲已經結束囉！", ephemeral=True)
+        if self.game_view.buttons[self.tile_idx].disabled:
+            return await interaction.response.send_message("❌ 這個格子剛剛已經被別人搶先翻開了！", ephemeral=True)
+
+        try:
+            bet = int(self.bet_input.value)
+            if bet < self.game_view.min_bet:
+                return await interaction.response.send_message(f"❌ 下注金額不能低於目前的最低跟注 ({self.game_view.min_bet:,} 金幣)！", ephemeral=True)
+        except ValueError:
+            return await interaction.response.send_message("❌ 請輸入有效的數字金額！", ephemeral=True)
+
+        cog = self.game_view.cog
+        bal = await cog.bot.db.get_balance(interaction.user.id)
+        if bal < bet:
+            return await interaction.response.send_message(f"❌ 你的餘額不足！(需要 **{bet:,}** 金幣)", ephemeral=True)
+
+        # 扣款與更新獎池
+        await cog.bot.db.update_balance(interaction.user.id, -bet)
+        self.game_view.pot += bet
+        self.game_view.min_bet = bet
+
+        is_owner = await cog.bot.is_owner(interaction.user)
+        if is_owner and self.tile_idx != self.game_view.winning_idx:
+            # 老闆特權：如果點錯了，偷偷把隱藏寶石移到你點的這格！必定中獎！
+            self.game_view.winning_idx = self.tile_idx
+
+        btn = self.game_view.buttons[self.tile_idx]
+        btn.disabled = True
+
+        if self.tile_idx == self.game_view.winning_idx:
+            self.game_view.is_finished = True
+            btn.emoji = "💎"
+            btn.style = discord.ButtonStyle.success
+
+            # 發獎金
+            await cog.bot.db.update_balance(interaction.user.id, self.game_view.pot)
+            await cog.update_gamble_profit(interaction.user.id, self.game_view.pot - bet)
+            
+            self.game_view.history.insert(0, f"🎉 **{interaction.user.display_name}** 投入 `{bet:,}` 金幣並挖到了寶石！獨得 `{self.game_view.pot:,}` 金幣！")
+            
+            # 翻開所有未點開的格子
+            for idx, b in enumerate(self.game_view.buttons):
+                b.disabled = True
+                if not b.emoji:
+                    b.emoji = "💥" if idx != self.game_view.winning_idx else "💎"
+            
+            self.game_view.add_play_again_button()
+
+            embed = self.game_view.build_embed(won=True, winner=interaction.user)
+            await interaction.response.edit_message(embed=embed, view=self.game_view)
+        else:
+            # 踩到地雷
+            btn.emoji = "💥"
+            btn.style = discord.ButtonStyle.danger
+            await cog.update_gamble_profit(interaction.user.id, -bet)
+            self.game_view.history.insert(0, f"💥 **{interaction.user.display_name}** 下注 `{bet:,}` 金幣卻踩到了地雷！")
+            
+            embed = self.game_view.build_embed()
+            await interaction.response.edit_message(embed=embed, view=self.game_view)
+
+class TreasureHuntView(discord.ui.View):
+    def __init__(self, cog, ctx, seed_amount):
+        super().__init__(timeout=600) # 給予 10 分鐘完賽
+        self.cog = cog
+        self.ctx = ctx
+        self.seed_amount = seed_amount
+        self.pot = seed_amount
+        self.min_bet = seed_amount
+        self.is_finished = False
+        self.message = None
+        
+        self.winning_idx = random.randint(0, 19)
+        self.history = [f"🟢 **{ctx.author.display_name}** 注入了初始獎池 `{seed_amount:,}` 金幣開局！"]
+        
+        self.buttons = []
+        for i in range(20):
+            btn = discord.ui.Button(label="\u200b", style=discord.ButtonStyle.secondary, row=i//5, custom_id=f"tile_{i}")
+            btn.callback = self.make_callback(i)
+            self.buttons.append(btn)
+            self.add_item(btn)
+
+    def make_callback(self, i):
+        async def callback(interaction: discord.Interaction):
+            if self.is_finished:
+                if not interaction.response.is_done(): await interaction.response.defer()
+                return
+            await interaction.response.send_modal(TreasureBetModal(self, i))
+        return callback
+
+    def add_play_again_button(self):
+        btn = discord.ui.Button(label="🔄 原房主再開一局", style=discord.ButtonStyle.primary, row=4)
+        async def callback(interaction: discord.Interaction):
+            if interaction.user.id != self.ctx.author.id:
+                return await interaction.response.send_message("❌ 只有原房主可以重新開局喔！", ephemeral=True)
+            
+            bal = await self.cog.bot.db.get_balance(self.ctx.author.id)
+            if bal < self.seed_amount:
+                return await interaction.response.send_message(f"❌ 你的餘額不足以用相同金額再開一局！需要 **{self.seed_amount:,}** 金幣", ephemeral=True)
+            
+            for child in self.children: child.disabled = True
+            await interaction.response.edit_message(view=self)
+            self.ctx.interaction = None
+            await self.cog.minesweeper.callback(self.cog, self.ctx, self.seed_amount)
+        btn.callback = callback
+        self.add_item(btn)
+
+    def build_embed(self, won=False, winner=None):
+        embed = discord.Embed(title="💎 奪寶大逃殺 (多人累積獎池)", color=discord.Color.gold() if won else discord.Color.blurple())
+        
+        if won:
+            embed.description = f"🎉 恭喜 {winner.mention} 找出了隱藏的寶石！\n獨得總獎池 **{self.pot:,}** 金幣！"
+        else:
+            embed.description = "🎯 **規則：** 找出 20 格中唯一隱藏的寶石 💎！\n💥 若踩到地雷，你的賭金將會注入總獎池中！\n💰 下一位玩家可選擇 **跟注** 或 **加注** 繼續挑戰！"
+
+        embed.add_field(name="💰 目前總獎池", value=f"**{self.pot:,}** 金幣", inline=True)
+        embed.add_field(name="📈 最低跟注金額", value=f"**{self.min_bet:,}** 金幣", inline=True)
+        
+        history_text = "\n".join(self.history[:5])
+        embed.add_field(name="📜 最新動態", value=history_text, inline=False)
+        
+        embed.set_footer(text="閒置 10 分鐘未破關，總獎池將全數充公！")
+        return embed
+
+    async def on_timeout(self):
+        if not self.is_finished:
+            self.is_finished = True
+            for child in self.children: child.disabled = True
+            if self.message:
+                embed = self.message.embeds[0]
+                embed.color = discord.Color.dark_grey()
+                embed.description = "⏳ **遊戲已逾時！** 10 分鐘內無人找出寶石，總獎池已全數充公！"
+                try: await self.message.edit(embed=embed, view=self)
+                except: pass
+
 class Gamble(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -848,57 +998,22 @@ class Gamble(commands.Cog):
         view = PlayAgainView(self.slots.callback, self, ctx, amount, multiplier=multiplier)
         await slot_msg.edit(embed=embed, view=view)
 
-    @commands.hybrid_command(name="highroll", aliases=["高賠率", "拼運氣", "自訂賠率"], help="自訂賠率的高風險賭博！勝率由你決定。")
-    @app_commands.describe(multiplier="設定賠率 (2.0 ~ 100.0 倍)", amount="下注金額")
-    async def highroll(self, ctx: commands.Context, multiplier: float, amount: int):
-        if amount <= 0:
-            return await ctx.send(embed=discord.Embed(description="❌ 下注金額必須大於 0 喔！", color=discord.Color.red()), ephemeral=True)
-        if multiplier < 2.0 or multiplier > 100.0:
-            return await ctx.send(embed=discord.Embed(description="❌ 賠率必須設定在 2.0 到 100.0 倍之間！", color=discord.Color.red()), ephemeral=True)
+    @commands.hybrid_command(name="minesweeper", aliases=["highroll", "踩地雷", "高賠率", "mines", "尋寶", "treasure"], help="奪寶大逃殺！大家輪流跟注或加注，直到有人找出唯一的寶石獨得總獎池！")
+    @app_commands.describe(amount="初始獎池底注 (最少需 10 金幣)")
+    async def minesweeper(self, ctx: commands.Context, amount: int):
+        if amount < 10:
+            return await ctx.send(embed=discord.Embed(description="❌ 初始底注必須大於或等於 10 金幣喔！", color=discord.Color.red()), ephemeral=True)
         if await self.bot.db.get_balance(ctx.author.id) < amount:
-            return await ctx.send(embed=discord.Embed(description="❌ 你的餘額不足，無法下注！", color=discord.Color.red()), ephemeral=True)
+            return await ctx.send(embed=discord.Embed(description="❌ 你的餘額不足以開啟牌局！", color=discord.Color.red()), ephemeral=True)
 
-        # 計算目標勝率 (例如 10倍 就是 10% 勝率)
-        chance = 100.0 / multiplier
+        await self.bot.db.update_balance(ctx.author.id, -amount)
+        await self.update_gamble_profit(ctx.author.id, -amount)
         
-        embed = discord.Embed(title="🚀 高賠率挑戰", description=f"設定賠率：**{multiplier:.1f} 倍**\n目標數字：小於 **{chance:.2f}**\n🎲 骰子滾動中...", color=discord.Color.blurple())
-        embed.set_thumbnail(url=ctx.author.display_avatar.url)
-        roll_msg = await ctx.send(embed=embed)
+        view = TreasureHuntView(self, ctx, amount)
+        embed = view.build_embed()
         
-        # 動態更新三次模擬滾動效果
-        for _ in range(3):
-            temp_roll = random.uniform(0, 100)
-            embed.description = f"設定賠率：**{multiplier:.1f} 倍**\n目標數字：小於 **{chance:.2f}**\n🎲 快速滾動中... `[{temp_roll:.2f}]`"
-            await roll_msg.edit(embed=embed)
-            await asyncio.sleep(0.5)
-
-        roll = random.uniform(0, 100)
-        
-        if await self.bot.is_owner(ctx.author):
-            roll = chance * 0.99
-            
-        if roll <= chance:
-            winnings = int(amount * multiplier)
-            profit = winnings - amount
-            await self.bot.db.update_balance(ctx.author.id, profit)
-            await self.update_gamble_profit(ctx.author.id, profit)
-            ach_msg = await self.check_win_achievement(ctx, profit)
-            
-            embed.color = discord.Color.green()
-            embed.description = f"設定賠率：**{multiplier:.1f} 倍**\n目標數字：小於 **{chance:.2f}**\n🎲 最終擲出：`[{roll:.2f}]`\n\n🎉 恭喜達標！贏得了 **{winnings:,}** 金幣！{ach_msg}"
-        else:
-            await self.bot.db.update_balance(ctx.author.id, -amount)
-            await self.update_gamble_profit(ctx.author.id, -amount)
-            ach_msg = await self.check_loss_achievement(ctx, amount)
-            
-            embed.color = discord.Color.red()
-            embed.description = f"設定賠率：**{multiplier:.1f} 倍**\n目標數字：小於 **{chance:.2f}**\n🎲 最終擲出：`[{roll:.2f}]`\n\n💥 運氣不佳，沒有小於目標數字，損失了 **{amount:,}** 金幣。{ach_msg}"
-
-        embed.set_footer(text=f"💰 目前餘額: {await self.bot.db.get_balance(ctx.author.id):,} 金幣")
-        
-        # 完美支援原有的「再玩一次、重新下注、倍壓」面板
-        view = PlayAgainView(self.highroll.callback, self, ctx, multiplier, amount)
-        await roll_msg.edit(embed=embed, view=view)
+        msg = await ctx.send(embed=embed, view=view)
+        view.message = msg
 
     async def start_blackjack_lobby(self, channel, host, amount):
         """獨立的多人 21 點牌桌發起器，完美避開斜線指令逾時限制"""
