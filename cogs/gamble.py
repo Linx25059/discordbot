@@ -635,10 +635,11 @@ class TreasureBetModal(discord.ui.Modal, title='💸 跟注或加注'):
             btn.style = discord.ButtonStyle.success
 
             # 發獎金
-            await cog.bot.db.update_balance(interaction.user.id, self.game_view.pot)
-            await cog.update_gamble_profit(interaction.user.id, self.game_view.pot - bet)
+            final_win = int(self.game_view.pot * self.game_view.multiplier)
+            await cog.bot.db.update_balance(interaction.user.id, final_win)
+            await cog.update_gamble_profit(interaction.user.id, final_win - bet)
             
-            self.game_view.history.insert(0, f"🎉 **{interaction.user.display_name}** 投入 `{bet:,}` 金幣並挖到了寶石！獨得 `{self.game_view.pot:,}` 金幣！")
+            self.game_view.history.insert(0, f"🎉 **{interaction.user.display_name}** 投入 `{bet:,}` 金幣並挖到了寶石！獨得 `{final_win:,}` 金幣 (總獎池 {self.game_view.pot:,} × {self.game_view.multiplier}x)！")
             
             # 翻開所有未點開的格子
             for idx, b in enumerate(self.game_view.buttons):
@@ -660,7 +661,12 @@ class TreasureBetModal(discord.ui.Modal, title='💸 跟注或加注'):
             btn.emoji = "💥"
             btn.style = discord.ButtonStyle.danger
             await cog.update_gamble_profit(interaction.user.id, -bet)
-            self.game_view.history.insert(0, f"💥 **{interaction.user.display_name}** 下注 `{bet:,}` 金幣卻踩到了地雷！")
+            
+            # 踩到地雷，增加獎池倍率
+            added_mult = round(random.uniform(0.1, 0.5), 1)
+            self.game_view.multiplier = round(self.game_view.multiplier + added_mult, 1)
+            
+            self.game_view.history.insert(0, f"💥 **{interaction.user.display_name}** 下注 `{bet:,}` 金幣踩雷！倍率提升 **+{added_mult}x**！")
             
             embed = self.game_view.build_embed()
             await interaction.response.edit_message(embed=embed, view=self.game_view)
@@ -673,6 +679,7 @@ class TreasureHuntView(discord.ui.View):
         self.seed_amount = seed_amount
         self.pot = seed_amount
         self.min_bet = seed_amount
+        self.multiplier = 1.0
         self.game_finished = False
         self.message = None
         
@@ -715,12 +722,14 @@ class TreasureHuntView(discord.ui.View):
         embed = discord.Embed(title="💎 奪寶大逃殺 (多人累積獎池)", color=discord.Color.gold() if won else discord.Color.blurple())
         
         if won:
-            embed.description = f"🎉 恭喜 {winner.mention} 找出了隱藏的寶石！\n獨得總獎池 **{self.pot:,}** 金幣！"
+            final_win = int(self.pot * self.multiplier)
+            embed.description = f"🎉 恭喜 {winner.mention} 找出了隱藏的寶石！\n獨得最終獎金 **{final_win:,}** 金幣！"
         else:
-            embed.description = "🎯 **規則：** 找出 20 格中唯一隱藏的寶石 💎！\n💥 若踩到地雷，你的賭金將會注入總獎池中！\n💰 下一位玩家可選擇 **跟注** 或 **加注** 繼續挑戰！"
+            embed.description = "🎯 **規則：** 找出 20 格中唯一隱藏的寶石 💎！\n� 若踩到地雷，你的賭金將會注入總獎池，並且 **提升獎池倍率**！\n 下一位玩家可選擇 **跟注** 或 **加注** 繼續挑戰！"
 
-        embed.add_field(name="💰 目前總獎池", value=f"**{self.pot:,}** 金幣", inline=True)
-        embed.add_field(name="📈 最低跟注金額", value=f"**{self.min_bet:,}** 金幣", inline=True)
+        embed.add_field(name="💰 基礎獎池", value=f"**{self.pot:,}** 金幣", inline=True)
+        embed.add_field(name="🔥 獎池倍率", value=f"**{self.multiplier}x**", inline=True)
+        embed.add_field(name="💵 最低跟注", value=f"**{self.min_bet:,}** 金幣", inline=True)
         
         history_text = "\n".join(self.history[:5])
         embed.add_field(name="📜 最新動態", value=history_text, inline=False)
