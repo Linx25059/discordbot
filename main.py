@@ -43,9 +43,12 @@ async def setup_bot():
     await bot.db.connect()
     await bot.db.init_tables()
 
+    # ⛔ 設定要暫時關閉/停用的模組檔案名稱清單
+    ignored_cogs = ['ai_chat.py']
+
     # 啟動時自動載入 cogs 資料夾內的模組
     for filename in os.listdir('./cogs'):
-        if filename.endswith('.py'):
+        if filename.endswith('.py') and filename not in ignored_cogs:
             try:
                 await bot.load_extension(f'cogs.{filename[:-3]}')
                 logging.info(f'已載入模組: {filename}')
