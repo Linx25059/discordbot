@@ -76,6 +76,18 @@ async def on_command(ctx):
 async def on_command_completion(ctx):
     logging.info(f'[指令完成] 使用者: {ctx.author} (ID: {ctx.author.id}) | 指令: {ctx.command}')
 
+# 🛡️ 全域錯誤處理：捕捉錯誤並給予友善提示，避免機器人崩潰
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        return  # 忽略找不到指令的錯誤
+    elif isinstance(error, commands.MissingPermissions):
+        await ctx.send("❌ 您沒有權限執行此指令！")
+    else:
+        logging.error(f'執行指令 {ctx.command} 時發生錯誤: {error}')
+        traceback.print_exception(type(error), error, error.__traceback__)
+        await ctx.send("⚠️ 發生未預期的錯誤，請聯絡開發人員。")
+
 # 加入手動同步斜線指令的文字指令
 @bot.command(name="sync", help="【管理員專用】手動同步斜線指令")
 @commands.has_permissions(administrator=True)
