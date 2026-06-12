@@ -41,42 +41,11 @@ class Leveling(commands.Cog):
             new_xp -= xp_needed # 扣除升級耗費的 XP
             await self.bot.db.db.execute('UPDATE leveling SET xp = ?, level = ? WHERE guild_id = ? AND user_id = ?', (new_xp, new_level, guild_id, user_id))
             
-            # --- 新增：升級發大財 (等級 * 1000 金幣) ---
-            reward_coins = new_level * 1000
-            await self.bot.db.update_balance(user_id, reward_coins)
-            
-            embed = discord.Embed(title="🆙 升級通知", description=f"🎉 恭喜 {message.author.mention}，你升級到 **Lv.{new_level}** 囉！\n💰 **升級獎勵：** 獲得了 **{reward_coins:,}** 金幣！", color=discord.Color.gold())
+            embed = discord.Embed(title="🆙 升級通知", description=f"🎉 恭喜 {message.author.mention}，你升級到 **Lv.{new_level}** 囉！", color=discord.Color.gold())
             await message.channel.send(embed=embed)
         else:
             await self.bot.db.db.execute('UPDATE leveling SET xp = ? WHERE guild_id = ? AND user_id = ?', (new_xp, guild_id, user_id))
             
-        # --- 新增：聊天隨機金幣掉落 (15% 機率) ---
-        if random.random() < 0.15:
-            drop_coins = random.randint(100, 500)
-            await self.bot.db.update_balance(user_id, drop_coins)
-            
-            msg_text = f"🪙 幸運兒！{message.author.mention} 在聊天時意外撿到了 **{drop_coins}** 金幣！"
-            
-            if drop_coins > 400:
-                hidden_dialogues = [
-                    "\n*(🕵️‍♂️ 系統聲音：哇塞！這該不會是版主不小心掉的私房錢吧...？)*",
-                    "\n*(🌟 財神爺在你耳邊低語：年輕人，這筆鉅款可別亂花啊！)*",
-                    "\n*(👀 路過的群友投以羨慕、嫉妒、恨的眼光...)*",
-                    "\n*(🎰 運氣大爆棚！建議等等直接去賭場梭哈了啦！)*"
-                ]
-                msg_text += random.choice(hidden_dialogues)
-            
-            # 解鎖隱藏成就：天選之人
-            if await self.bot.db.check_and_add_achievement(user_id, '【天選之人】'):
-                msg_text += "\n\n✨ **成就解鎖！** 運氣爆棚，獲得稱號 **【天選之人】**！"
-                
-            try:
-                # 自動刪除提示避免洗頻 (如果有觸發隱藏對話，多留幾秒讓幸運兒能截圖)
-                delete_time = 8 if drop_coins > 400 else 5
-                await message.channel.send(msg_text, delete_after=delete_time)
-            except:
-                pass
-                
         await self.bot.db.db.commit()
 
     @commands.hybrid_command(name="rank", aliases=["等級", "xp"], help="查看自己的等級與經驗值進度")
