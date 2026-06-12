@@ -10,10 +10,7 @@ class Profile(commands.Cog):
         member = member or ctx.author
         user_id = member.id
 
-        # 1. 查詢財富餘額
-        balance = await self.bot.db.get_balance(user_id)
-
-        # 2. 查詢等級資訊
+        # 1. 查詢等級資訊
         if ctx.guild:
             async with self.bot.db.db.execute('SELECT xp, level FROM leveling WHERE guild_id = ? AND user_id = ?', (ctx.guild.id, user_id)) as cursor:
                 lvl_result = await cursor.fetchone()
@@ -27,20 +24,13 @@ class Profile(commands.Cog):
         else:
             lvl_str = "**Lv.1**\n`0 / 105` XP"
 
-        # 3. 查詢成就稱號
+        # 2. 查詢成就稱號
         badges = await self.bot.db.get_achievements(user_id)
         
         # 定義成就對應的專屬圖示 (依照稀有度或主題設定)
         badge_icons = {
-            "【天選之人】": "👑",       # 稀有掉落
             "【百烈金右手】": "🌟",     # 隱藏計數成就
-            "【賭神】": "🎰",         # 賭場大贏家
-            "【股票大亨】": "📈",       # 股市翻倍
-            "【AI 詠唱者】": "🤖",      # 消耗大量 Token
-            "【夜貓子】": "🦉",         # 深夜活動
-            "【大慈善家】": "💸",       # 賭場大輸家
-            "【破產仔】": "📉",         # 餘額歸零
-            "【超級大韭菜】": "🥬"      # 股市慘賠
+            "【夜貓子】": "🦉"          # 深夜活動
         }
         
         if badges:
@@ -50,7 +40,6 @@ class Profile(commands.Cog):
 
         embed = discord.Embed(title=f"🪪 {member.display_name} 的個人檔案", color=discord.Color.purple())
         embed.set_thumbnail(url=member.display_avatar.url)
-        embed.add_field(name="💰 財富餘額", value=f"**{balance:,}** 金幣", inline=True)
         embed.add_field(name="🏆 活躍等級", value=lvl_str, inline=True)
         embed.add_field(name="🎖️ 收集稱號", value=badge_str, inline=False)
         await ctx.send(embed=embed)
