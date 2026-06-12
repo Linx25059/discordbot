@@ -1,115 +1,76 @@
-# 🤖 Discord Community Bot (社群多功能機器人)
+# 🤖 Discord Community Bot (資訊與管理專屬版)
 
-!Python
-!discord.py
-!SQLite
-!License
-
-本專案為一款基於 `discord.py` 開發的全方位 Discord 機器人，完美整合了 **AI 智慧對話、虛擬經濟與動態股市、音樂播放、多項互動遊戲、自動推播**，以及強大的**伺服器管理與實用工具**。旨在為您的 Discord 社群帶來極致的互動體驗與高效的管理方案。
+這是一個全方位的 Discord 社群多功能機器人，致力於提供最豐富的娛樂體驗與最便利的伺服器管理功能。
+經過系統精簡，本作移除了經濟與虛擬股市系統，專注於**高效的資訊查詢**與**伺服器自動化管理**服務。
 
 ---
 
-## 🌟 核心功能特色
+## ✨ 核心特色功能
 
-###  AI 智慧助理 (`ai_chat.py`)
-- **強大核心**：串接 Google Gemini 2.5 Flash 模型，支援即時聯網搜尋。
-- **多重人格**：支援切換傲嬌、毒舌、貓娘等多種聊天風格 (`/set_persona`)。
-- **資源管理**：內建上下文獨立記憶、Token 消耗統計 (`/token_stats`) 與配額監控 (`/quota`)。
+### 🔍 查詢與資訊
+- **天氣預報** (`/weather`)：查詢即時天氣與近期預報，支援設定專屬預設地點。
+- **每日天氣推播** (`/dailyweather`)：訂閱後，每日早上 8 點自動私訊推送天氣預報。
 
-### 🏦 經濟與虛擬股市系統 (`economy.py`, `finance.py`)
-- **全新銀行系統**：支援現金錢包與銀行存款雙帳戶，存款每日自動產生 1% 利息，並設有全服富豪榜 (`/richest`)。
-- **虛擬大盤股市**：內建 15 款特色股票（如：護國神山台積電、滷肉飯指數），價格每小時動態波動。
-- **進階金融體驗**：支援買賣持倉分析 (`/portfolio`)、內線消息訂閱、市場即時快訊推播，以及歷史折線圖 (`/stock_history`)。
+### 🎵 影音與趣味互動
+- **音樂點播** (`/play`)：支援高音質 YouTube 音樂點播，帶有控制面板與待播清單。
+- **惡搞頭貼與迷因** (`/jail`, `/wasted`, `/pixelate`, `/meme` 等)：多種有趣的圖片生成與編輯功能。
+- **美食推薦** (`/eat`, `/drink`)：選擇障礙救星！自動幫你推薦三餐與手搖飲品項。
 
-### 🎮 娛樂與互動遊戲 (`gamble.py`, `fun.py`, `image.py`)
-- **皇家 21 點**：支援至多 5 人連線的完整 Blackjack 系統，具備雙倍下注、分牌、投降與黑傑克結算機制。
-- **賭場與小遊戲**：內建拉霸機 (`/slots`)、骰子對決 (`/betdice`)、猜硬幣 (`/coinflip`) 與抽獎系統 (`/giveaway`)。
-- **惡搞圖片生成**：支援多種大頭貼濾鏡，包含打碼 (`/pixelate`)、黑白遺照 (`/wasted`)、詛咒負片 (`/invert`) 與近視模糊 (`/blur`)，並內建迷因圖產生器 (`/meme`)。
+### 🎮 遊戲與娛樂
+- **遊戲抽籤面板** (`/game_panel`)：不知道今天要玩什麼？將遊戲加入清單讓機器人幫你抽籤。
+- **自訂抽獎** (`/giveaway`)：自訂物品或獎項，並在頻道內舉辦限時抽獎活動。
+- **趣味計數器** (`/jerkboard`)：特定的趣味關鍵字計數排行榜與隱藏成就。
 
-### 🔞 老司機專屬車庫 (`nsfw.py`)
-- **熱門網頁爬蟲**：動態爬取 Jable、MissAV、Hanime 等 4 大平台即時熱門榜單。
-- **群友互動推播**：專屬的群友投稿推薦 (`/submit_av`)、點讚機制與老司機排行榜 (`/av_top`)。
-- **深夜福利專車**：每日深夜指定頻道自動推播精選車牌。
+### 🏆 活躍與個人
+- **等級系統** (`/rank`, `/leaderboard`)：文字頻道活躍度經驗值系統與伺服器排行榜。
+- **個人檔案** (`/profile`)：展示目前的等級進度以及獲得的專屬隱藏成就徽章。
 
-### 🎵 高音質音樂播放 (`music.py`)
-- **直覺點播**：支援透過 YouTube 連結或關鍵字直接點播音樂。
-- **互動控制面板**：提供播放/暫停、切換下一首、離開頻道及查看待播清單的按鈕 UI。
-
-### 🛠️ 實用工具與伺服器管理 (`admin.py`, `logger.py`, `weather.py`, `link_fixer.py`)
-- **社群連結修復**：自動修復 Twitter/X, Instagram, TikTok, Threads 等社群連結，透過 Webhook 保持原發送者外觀。
-- **動態語音頻道**：使用者進入特定頻道時自動建立專屬語音空間，閒置時自動銷毀。
-- **生活資訊工具**：專屬地點天氣綁定與每日早晨推播 (`/dailyweather`)、餐飲推薦服務 (`/food`)。
-- **全方位日誌與回報**：完整記錄訊息刪除、成員進出（追蹤邀請者）、語音頻道動態。內建 Bug 回報工單系統 (Ticket)。
-- **一鍵維護**：管理員熱修復 (`!hotfix`) 與環境變數動態更新 (`!update_env`) 功能。
+### 🛠️ 實用工具與自動化
+- **社群連結修復**：自動將 X (Twitter), Instagram, TikTok, Threads 等平台的連結轉換為「可直接預覽影片與圖片」的格式。
+- **動態語音頻道** (`/setupvoice`)：設定「點我建立頻道」，成員加入時自動生成專屬包廂，人走即刪。
+- **廣播推播系統**：
+  - **每日新聞** (`/setnews`)：每日早上 8 點自動推播 Google 焦點新聞。
+  - **限時免費遊戲** (`/setgames`)：自動偵測 Steam, Epic Games 等平台的限免遊戲並推播通知。
+- **自訂自動回覆** (`/addreply`)：設定特定關鍵字的自動回覆對話。
+- **伺服器日誌** (`/setlog`)：完整記錄訊息刪除/編輯、成員進出、語音動態與頻道異動。
+- **報錯單系統** (`/bugreport`)：建立專屬問題回報頻道，供成員與管理員私下溝通。
+- **管理員工具**：一鍵清頻 (`!clear`)、自動歡迎新成員等實用管理指令。
 
 ---
 
-##  環境需求
+## 🚀 快速啟動指南
 
-- **Python 3.8+**
-- `discord.py` 2.0+
-- `google-genai` (Gemini API)
-- `yt-dlp` & `PyNaCl` (語音與音樂模組)
-- `FFmpeg` (音樂播放必備組件)
-- `aiosqlite` / `aiohttp` / `Pillow`
-
----
-
-## ☁️ Oracle Cloud 虛擬機部署指南 (Ubuntu)
-
-推薦使用 Oracle Cloud (Ubuntu Linux) 作為部署環境。以下為完整的伺服器架設與常駐執行步驟：
-
-### 1. 更新系統並安裝基礎套件
-登入虛擬機 (SSH) 後，更新套件清單並安裝 Python 虛擬環境工具、Git 以及 FFmpeg：
+### 1. 環境準備
+請確保你的系統已安裝 **Python 3.8+**，並安裝所需的套件：
 ```bash
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y python3-pip python3-venv git ffmpeg nodejs npm
+pip install discord.py aiosqlite yt-dlp Pillow aiohttp python-dotenv
 ```
+*(⚠️ 註：若要使用音樂 `/play` 功能，必須在系統環境變數中安裝並設定 **FFmpeg**)*
 
-### 2. 下載專案與建立虛擬環境
-將專案複製到虛擬機中，並建立隔離的 Python 虛擬環境以避免套件衝突：
-```bash
-git clone <你的_GitHub_Repo_網址>
-cd <專案資料夾>
-python3 -m venv venv
-source venv/bin/activate
-```
-
-### 3. 安裝 Python 依賴套件
-在啟動虛擬環境的狀態下（終端機前方會有 `(venv)` 提示），安裝所需套件：
-```bash
-pip install -r requirements.txt
-```
-
-### 4. 設定環境變數 (.env)
-建立並編輯 `.env` 檔案：
-```bash
-nano .env
-```
-填入以下資訊（填寫完畢按 `Ctrl+O` 存檔，`Enter` 確認，`Ctrl+X` 離開）：
+### 2. 設定環境變數
+在專案根目錄下建立一個 `.env` 檔案，並填入你的 Discord Bot Token：
 ```env
-DISCORD_TOKEN=你的_DISCORD_BOT_TOKEN
-GEMINI_API_KEY=你的_GOOGLE_GEMINI_API_KEY
+DISCORD_TOKEN=你的機器人Token填寫在這裡
 ```
+*(或者你也可以由機器人擁有者透過 `!update_env DISCORD_TOKEN <你的Token>` 指令動態設定)*
 
-### 5. 背景常駐執行 (使用 PM2)
-為了確保關閉 SSH 連線後機器人依然穩定運作，我們使用 PM2 來守護進程：
+### 3. 啟動機器人
 ```bash
-# 全域安裝 PM2
-sudo npm install -g pm2
-
-# 啟動機器人，並綁定虛擬環境中的 Python 解譯器
-pm2 start main.py --name discord-bot --interpreter ./venv/bin/python
-
-# 儲存 PM2 狀態並設定開機自動啟動
-pm2 save
-pm2 startup
+python main.py
 ```
+啟動時，機器人會自動建立 `bot_database.db` (SQLite 資料庫) 並初始化所有需要的資料表。
+
+### 4. 同步斜線指令 (重要)
+為了避免 Discord API 速率限制 (Rate Limit)，機器人啟動時**不會自動同步**斜線指令。
+請在 Discord 頻道中，使用具備「管理員」權限的帳號輸入以下指令：
+- `!sync here`：同步當前伺服器專屬指令 (可立即生效，推薦測試時使用)。
+- `!sync`：全域同步指令 (最多需等候 1 小時才會在所有伺服器生效)。
+- `!sync clear`：清除當前伺服器的專屬指令 (用於修復指令重複的問題)。
 
 ---
 
-## 💾 資料庫設計
-本系統採用輕量級 `SQLite` (`bot_database.db`) 作為資料持久化方案，搭配 `aiosqlite` 實現全域非同步連線操作。系統於首次啟動時，將自動初始化並建立所有核心資料表結構，無須額外架設資料庫伺服器。
-
-## 📄 授權條款 (License)
-本專案採用 **MIT License** 開源授權條款。詳細的授權內容與規範請參閱專案根目錄下的 `LICENSE` 檔案。
+## 🛡️ 維護與除錯指令
+針對機器人擁有者與管理員，系統內建了強大的熱重載 (Hot-reload) 系統：
+- `!reload <模組名稱>`：重新載入指定的模組檔案 (例如 `!reload music`)，無須重啟機器人即可套用程式碼更新。
+- `!hotfix`：一鍵重新載入所有 `cogs` 資料夾下的模組，並自動執行 `!sync` 同步指令。
+- `!shutdown`：安全關閉機器人。
