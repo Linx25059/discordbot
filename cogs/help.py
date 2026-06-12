@@ -53,7 +53,7 @@ class AdminHelpSelect(discord.ui.Select):
             embed = discord.Embed(title="🛠️ 管理員指令清單 (總覽)", description="以下是目前系統載入的**所有指令**（包含隱藏與管理權限指令）：\n*(提示：點擊下方選單選擇分類查看詳細說明！)*", color=discord.Color.red())
             embed.set_thumbnail(url=self.bot.user.display_avatar.url)
             for cat, cmds in self.mapping.items():
-                cmd_count = sum(block.count("**`/") for block in cmds)
+                cmd_count = sum(block.count("**`") for block in cmds)
                 embed.add_field(name=cat, value=f"包含 {cmd_count} 個指令", inline=True)
         else:
             embed = discord.Embed(title=f"🛠️ {category} (管理員視角)", description="", color=discord.Color.dark_red())
@@ -94,8 +94,8 @@ class Help(commands.Cog):
         self.current_version = "1.4"
         self.changelog_title = f"✨ 機器人更新日誌 (v{self.current_version})"
         self.changelog_text = (
-            "**🚀 v1.4 重大更新發布！**\n"
-            "• 🃏 **賭場修復與升級：** 修復 21 點雙重扣款與結算按鈕失效問題，並支援多人自訂下注金額。\n"
+            "**🚀 資訊版機器人全新上線！**\n"
+            "• 🧹 **系統精簡：** 移除經濟、股市與 AI 聊天功能，專注提供高效的資訊與管理服務。\n"
             "• 🛠️ **系統管理優化：** 完善幫助選單模組，補齊了管理員專屬工具及所有的模組指令介紹。\n"
         )
 
@@ -104,8 +104,7 @@ class Help(commands.Cog):
 
         # 重新整理成大分類結構
         self.categorized_cogs = {
-            "🤖 智慧助理與查詢": {
-                "AIChat": "🧠 智慧聊天助理",
+            "🔍 查詢與資訊": {
                 "Weather": "🌤️ 天氣預報查詢"
             },
             "🎵 影音與趣味互動": {
@@ -115,13 +114,8 @@ class Help(commands.Cog):
             },
             "🎮 遊戲與娛樂": {
                 "GameRouletteCog": "🎰 遊戲抽籤面板",
-                "Gamble": "🎲 娛樂城與賭博",
                 "Fun": "🎁 抽獎與活動",
                 "JerkCounter": "💦 趣味計數"
-            },
-            "💸 經濟與財富": {
-                "Economy": "💰 錢包與打工",
-                "Finance": "📈 虛擬股票市場"
             },
             "🏆 活躍與個人": {
                 "Leveling": "🏅 等級排行榜",
@@ -196,7 +190,8 @@ class Help(commands.Cog):
                         
                     if allowed:
                         usage = f" {cmd.signature}" if cmd.signature else ""
-                        category_cmds.append(f"**`/{cmd.name}{usage}`** - {cmd.short_doc or '無說明'}")
+                        prefix = "/" if isinstance(cmd, commands.HybridCommand) else "!"
+                        category_cmds.append(f"**`{prefix}{cmd.name}{usage}`** - {cmd.short_doc or '無說明'}")
             
             if category_cmds:
                 mapping[category] = category_cmds
@@ -227,7 +222,8 @@ class Help(commands.Cog):
                 
             if allowed:
                 usage = f" {cmd.signature}" if cmd.signature else ""
-                other_cmds.append(f"**`/{cmd.name}{usage}`** - {cmd.short_doc or '無說明'}")
+                prefix = "/" if isinstance(cmd, commands.HybridCommand) else "!"
+                other_cmds.append(f"**`{prefix}{cmd.name}{usage}`** - {cmd.short_doc or '無說明'}")
                 
         if other_cmds:
             mapping["📌 其他指令"] = other_cmds
@@ -301,7 +297,8 @@ class Help(commands.Cog):
                     admin_tag = " 🛡️*(管理)*" if is_admin_cmd else ""
                     
                     # 優化排版，將參數與說明分層
-                    cog_cmds.append(f"**`/{cmd.name}{usage}`**{hidden_tag}{admin_tag}\n└ {cmd.short_doc or '無說明'}")
+                    prefix = "/" if isinstance(cmd, commands.HybridCommand) else "!"
+                    cog_cmds.append(f"**`{prefix}{cmd.name}{usage}`**{hidden_tag}{admin_tag}\n└ {cmd.short_doc or '無說明'}")
                 
                 if cog_cmds:
                     category_cmds.append(f"**【 {cog_desc} 】**\n" + "\n".join(cog_cmds))
@@ -325,7 +322,8 @@ class Help(commands.Cog):
                     break
             admin_tag = " 🛡️*(管理)*" if is_admin_cmd else ""
             
-            other_cmds.append(f"**`/{cmd.name}{usage}`**{hidden_tag}{admin_tag}\n└ {cmd.short_doc or '無說明'}")
+            prefix = "/" if isinstance(cmd, commands.HybridCommand) else "!"
+            other_cmds.append(f"**`{prefix}{cmd.name}{usage}`**{hidden_tag}{admin_tag}\n└ {cmd.short_doc or '無說明'}")
             
         if other_cmds:
             mapping["📌 其他未分類指令"] = [ "\n".join(other_cmds) ]
@@ -334,7 +332,7 @@ class Help(commands.Cog):
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         
         for cat, cmds in mapping.items():
-            cmd_count = sum(block.count("**`/") for block in cmds)
+            cmd_count = sum(block.count("**`") for block in cmds)
             embed.add_field(name=cat, value=f"包含 {cmd_count} 個指令", inline=True)
             
         embed.set_footer(text=f"查詢者: {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
