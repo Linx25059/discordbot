@@ -14,13 +14,18 @@ class Info(commands.Cog):
         )
         
         embed.add_field(
-            name="🎵 影音與趣味互動", 
-            value="支援高音質 YouTube 音樂點播 (`/play`)，帶有控制面板與待播清單。\n提供多種惡搞頭貼指令 (`/pixelate` 等) 與迷因圖產生器。還有專屬的美食與手搖飲推薦 (`/eat`, `/drink`)、金幣抽獎 (`/giveaway`) 與趣味計數排行 (`/jerkboard`)！", 
+            name="📢 廣播與自動化", 
+            value="內建每日新聞與限免遊戲推播 (`/setnews`, `/setgames`)、自訂關鍵字自動回覆 (`/addreply`)，以及能自動產生專屬包廂的動態語音頻道 (`/setupvoice`)。", 
             inline=False
         )
         embed.add_field(
-            name="🛠️ 實用工具與管理", 
-            value="內建自訂關鍵字回覆 (`/addreply`) 與完整的伺服器日誌系統 (`/setlog`)。\n自動修復社群連結預覽、自動建立動態語音頻道，並支援報錯單 (Ticket) 系統與天氣推播，幫助管理員輕鬆維護伺服器。", 
+            name="🏆 活躍與社群互動", 
+            value="具備伺服器活躍等級與經驗值系統 (`/rank`, `/leaderboard`)、個人專屬檔案與稱號 (`/profile`)，並支援在頻道內舉辦自訂抽獎活動 (`/giveaway`)！", 
+            inline=False
+        )
+        embed.add_field(
+            name="🛠️ 實用管理工具", 
+            value="包含完整的管理員功能，如一鍵清頻 (`!clear`)、自動歡迎新成員，以及熱重載機制 (`!hotfix`)，幫助管理員輕鬆維護伺服器。", 
             inline=False
         )
         
