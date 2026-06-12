@@ -14,16 +14,6 @@ class Info(commands.Cog):
         )
         
         embed.add_field(
-            name="🤖 智慧 AI 助理", 
-            value="內建 Google Gemini 2.5 Flash 模型，支援即時聯網搜尋。\n不僅能精準解答問題，還能透過 `/set_persona` 自由切換「傲嬌、毒舌、貓娘」等多重聊天人格，陪你無話不談！", 
-            inline=False
-        )
-        embed.add_field(
-            name="💹 經濟與虛擬股市", 
-            value="體驗完整的虛擬人生！透過 `/work` 打工賺錢，並將現金存入銀行 (`/deposit`) 賺取每日利息。\n在賭場裡遊玩 21點、拉霸機等小遊戲，還有具備即時歷史折線圖的虛擬股市系統，讓你體驗低買高賣的快感！", 
-            inline=False
-        )
-        embed.add_field(
             name="🎵 影音與趣味互動", 
             value="支援高音質 YouTube 音樂點播 (`/play`)，帶有控制面板與待播清單。\n提供多種惡搞頭貼指令 (`/pixelate` 等) 與迷因圖產生器。還有專屬的美食與手搖飲推薦 (`/eat`, `/drink`)、金幣抽獎 (`/giveaway`) 與趣味計數排行 (`/jerkboard`)！", 
             inline=False
