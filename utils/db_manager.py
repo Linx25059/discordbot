@@ -17,29 +17,15 @@ class DatabaseManager:
 
     async def init_tables(self):
         """初始化系統所需的所有核心資料表"""
-        await self.db.execute('''CREATE TABLE IF NOT EXISTS economy (user_id INTEGER PRIMARY KEY, balance INTEGER)''')
-        await self.db.execute('''CREATE TABLE IF NOT EXISTS inventory (user_id INTEGER, item_name TEXT, amount INTEGER)''')
         await self.db.execute('''CREATE TABLE IF NOT EXISTS achievements (user_id INTEGER, badge TEXT, PRIMARY KEY (user_id, badge))''')
-        await self.db.execute('''CREATE TABLE IF NOT EXISTS virtual_stocks (symbol TEXT PRIMARY KEY, name TEXT, price INTEGER, prev_price INTEGER, next_price INTEGER)''')
         await self.db.execute('''CREATE TABLE IF NOT EXISTS leveling (guild_id INTEGER, user_id INTEGER, xp INTEGER, level INTEGER, PRIMARY KEY (guild_id, user_id))''')
+        
+        # --- 清除已經棄用的舊版經濟、股市與 AI 成就 ---
+        deprecated_badges = ['【天選之人】', '【賭神】', '【股票大亨】', '【AI 詠唱者】', '【大慈善家】', '【破產仔】', '【超級大韭菜】']
+        for badge in deprecated_badges:
+            await self.db.execute('DELETE FROM achievements WHERE badge = ?', (badge,))
+            
         await self.db.commit()
-
-    # --- 💰 經濟系統共用邏輯 ---
-    async def get_balance(self, user_id: int) -> int:
-        async with self.db.execute('SELECT balance FROM economy WHERE user_id = ?', (user_id,)) as cursor:
-            result = await cursor.fetchone()
-        if result is None:
-            await self.db.execute('INSERT INTO economy (user_id, balance) VALUES (?, ?)', (user_id, 0))
-            await self.db.commit()
-            return 0
-        return result[0]
-
-    async def update_balance(self, user_id: int, amount: int) -> int:
-        balance = await self.get_balance(user_id)
-        new_balance = balance + amount
-        await self.db.execute('UPDATE economy SET balance = ? WHERE user_id = ?', (new_balance, user_id))
-        await self.db.commit()
-        return new_balance
 
     # --- 🏅 成就系統共用邏輯 ---
     async def check_and_add_achievement(self, user_id: int, badge: str) -> bool:
