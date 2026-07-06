@@ -19,8 +19,8 @@ class Info(commands.Cog):
             inline=False
         )
         embed.add_field(
-            name="🏆 活躍與社群互動", 
-            value="具備伺服器活躍等級與經驗值系統 (`/rank`, `/leaderboard`)、個人專屬檔案與稱號 (`/profile`)，並支援在頻道內舉辦自訂抽獎活動 (`/giveaway`)！", 
+            name="🎁 活動與抽獎", 
+            value="支援在頻道內舉辦自訂抽獎活動 (`/giveaway`)！", 
             inline=False
         )
         embed.add_field(
@@ -51,6 +51,16 @@ class Info(commands.Cog):
         embed.add_field(name="🌍 服務伺服器數量", value=f"`{len(self.bot.guilds)}` 個", inline=True)
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         
+        await ctx.send(embed=embed)
+
+    @commands.hybrid_command(name="ping", aliases=["延遲"], help="測試機器人的網路連線延遲")
+    async def ping(self, ctx):
+        latency = round(self.bot.latency * 1000)
+        embed = discord.Embed(
+            title="🏓 Pong!",
+            description=f"目前的系統連線延遲為：`{latency}ms`",
+            color=discord.Color.green()
+        )
         await ctx.send(embed=embed)
 
 async def setup(bot):
