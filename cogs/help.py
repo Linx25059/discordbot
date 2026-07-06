@@ -91,12 +91,12 @@ class Help(commands.Cog):
         await self.bot.db.db.commit()
 
         # --- 在這裡設定最新版本的更新內容 ---
-        self.current_version = "1.4"
+        self.current_version = "1.5"
         self.changelog_title = f"✨ 機器人更新日誌 (v{self.current_version})"
         self.changelog_text = (
-            "**🚀 資訊版機器人全新上線！**\n"
-            "• 🧹 **系統精簡：** 移除經濟、股市與 AI 聊天功能，專注提供高效的資訊與管理服務。\n"
-            "• 🛠️ **系統管理優化：** 完善幫助選單模組，補齊了管理員專屬工具及所有的模組指令介紹。\n"
+            "**🚀 實用資訊版機器人全新轉型！**\n"
+            "• 🧹 **移除經濟與等級系統：** 刪除等級、經驗值、個人檔案與趣味計數等娛樂系統，回歸極簡與實用定位。\n"
+            "• 🛠️ **架構優化：** 移除資料庫中不必要的資料表，提升機器人響應效能與穩定度。\n"
         )
 
         # 啟動時檢查是否需要推播更新
@@ -114,12 +114,7 @@ class Help(commands.Cog):
             },
             "🎮 遊戲與娛樂": {
                 "GameRouletteCog": "🎰 遊戲抽籤面板",
-                "Fun": "🎁 抽獎與活動",
-                "JerkCounter": "💦 趣味計數"
-            },
-            "🏆 活躍與個人": {
-                "Leveling": "🏅 等級排行榜",
-                "Profile": "🪪 個人專屬檔案"
+                "Fun": "🎁 抽獎與活動"
             },
             "🛠️ 實用工具與自動化": {
                 "LinkFixer": "🔗 社群連結修復",
