@@ -1,52 +1,117 @@
 import discord
 from discord.ext import commands
 import re
+from urllib.parse import urlparse, urlunparse
 
 class LinkFixer(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        # 設定要替換的網域對應表 (使用目前主流且穩定的預覽 API)
-        self.fix_map = {
-            "twitter.com": "vxtwitter.com",
-            "x.com": "fixvx.com",
-            "instagram.com": "kkinstagram.com",
-            "tiktok.com": "d.tiktokez.com",
-            "vm.tiktok.com": "vm.vxtiktok.com",
-            "threads.com": "fixthreads.seria.moe",
-            "threads.net": "vxthreads.net",
-            "pixiv.net": "phixiv.net",
-            "reddit.com": "rxddit.com",
-            "bsky.app": "vxbsky.app"
-        }
+        # 建立正則表達式，用來抓取訊息中的任何可能網址
+        self.url_pattern = re.compile(r'(https?://[^\s>\|]+)')
+
+    def fix_single_url(self, url: str) -> str | None:
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return None
+            
+        netloc = parsed.netloc.lower()
+        path = parsed.path
         
-        # 建立正則表達式，用來精準抓取訊息中的目標網址
-        domain_pattern = "|".join(re.escape(domain) for domain in self.fix_map.keys())
-        # [^\s>\|]+ 可以避免抓取到空格、Discord 的防雷標籤 || 或是隱藏預覽的 <>
-        self.url_pattern = re.compile(rf'(https?://)(?:www\.)?({domain_pattern})(/[^\s>\|]*)')
+        # 移除前導的 'www.' 以便統一判斷
+        def clean_netloc(nl):
+            if nl.startswith('www.'):
+                return nl[4:]
+            return nl
+
+        domain = clean_netloc(netloc)
+        
+        # 1. Twitter / X
+        if domain in ('twitter.com', 'x.com'):
+            if '/status/' in path:
+                return urlunparse(parsed._replace(netloc='fxtwitter.com'))
+                
+        # 2. Instagram
+        elif domain == 'instagram.com':
+            if path.startswith(('/p/', '/reel/', '/reels/')):
+                return urlunparse(parsed._replace(netloc='ddinstagram.com'))
+                
+        # 3. TikTok
+        elif domain == 'tiktok.com' or netloc.endswith('.tiktok.com'):
+            if domain == 'vm.tiktok.com':
+                return urlunparse(parsed._replace(netloc='vm.vxtiktok.com'))
+            else:
+                return urlunparse(parsed._replace(netloc='tnktok.com'))
+                
+        # 4. Threads
+        elif domain in ('threads.net', 'threads.com'):
+            return urlunparse(parsed._replace(netloc='fixthreads.seria.moe'))
+            
+        # 5. Reddit
+        elif domain in ('reddit.com', 'redditmedia.com'):
+            return urlunparse(parsed._replace(netloc='rxddit.com'))
+            
+        # 6. Pixiv
+        elif domain == 'pixiv.net':
+            return urlunparse(parsed._replace(netloc='phixiv.net'))
+            
+        # 7. Bluesky
+        elif domain == 'bsky.app':
+            return urlunparse(parsed._replace(netloc='fxbsky.app'))
+            
+        # 8. Bilibili (B站影片或短網址)
+        elif domain == 'bilibili.com' or domain == 'b23.tv':
+            return urlunparse(parsed._replace(netloc='vxbilibili.com'))
+            
+        # 9. Twitch Clip (影片剪輯)
+        elif domain == 'twitch.tv' or netloc == 'clips.twitch.tv':
+            if netloc == 'clips.twitch.tv' or '/clip/' in path:
+                new_netloc = 'fxtwitch.seria.moe'
+                if netloc == 'clips.twitch.tv':
+                    new_path = f"/clip{path}" if not path.startswith('/clip/') else path
+                    return urlunparse(parsed._replace(netloc=new_netloc, path=new_path))
+                return urlunparse(parsed._replace(netloc=new_netloc))
+                
+        # 10. Spotify (單曲、專輯、播放清單等)
+        elif domain == 'spotify.com' or netloc == 'open.spotify.com':
+            if path.startswith(('/track/', '/album/', '/artist/', '/playlist/')):
+                return urlunparse(parsed._replace(netloc='fxspotify.com'))
+                
+        # 11. YouTube Shorts (YouTube 短片)
+        elif domain in ('youtube.com', 'youtu.be'):
+            if path.startswith('/shorts/'):
+                return urlunparse(parsed._replace(netloc='koutube.com'))
+                
+        return None
 
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot:
             return
 
-        # 檢查是否包含需要修復的連結
+        # 快速檢查訊息是否含有網址，減少後續正則比對負荷
         if not self.url_pattern.search(message.content):
             return
 
-        # 定義正則表達式的替換邏輯
-        def replacer(match):
-            protocol = match.group(1)
-            domain = match.group(2)
-            path = match.group(3)
-            fixed_domain = self.fix_map[domain]
-            return f"{protocol}{fixed_domain}{path}"
+        fixed_urls = []
 
-        # 替換訊息中的所有網址 (保留使用者輸入的其他文字)
+        def replacer(match):
+            url = match.group(1)
+            fixed = self.fix_single_url(url)
+            if fixed:
+                fixed_urls.append(fixed)
+                return fixed
+            return url
+
+        # 替換訊息中的所有符合條件的網址
         new_content = self.url_pattern.sub(replacer, message.content)
+
+        # 若沒有任何網址被修改，則不進行後續動作
+        if not fixed_urls:
+            return
 
         try:
             # 嘗試取得頻道中的 Webhook
-            webhooks = await message.channel.webhooks()
             # 判斷是否在討論串 (Thread) 中，Thread 本身沒有 webhook，需從母頻道取得
             if isinstance(message.channel, discord.Thread):
                 webhook_channel = message.channel.parent
@@ -79,18 +144,11 @@ class LinkFixer(commands.Cog):
                     files=files
                 )
             
-            # 刪除原訊息 (讓版面看起來像是玩家自己發出的完美連結)
+            # 刪除原訊息
             await message.delete()
 
         except discord.Forbidden:
             # 如果機器人權限不足 (無法管理 Webhook 或刪除訊息)，退回舊版簡單的回覆模式
-            fixed_urls = []
-            matches = self.url_pattern.findall(message.content)
-            for match in matches:
-                protocol, domain, path = match
-                fixed_domain = self.fix_map[domain]
-                fixed_urls.append(f"{protocol}{fixed_domain}{path}")
-                
             try:
                 await message.edit(suppress=True)
             except discord.Forbidden:
