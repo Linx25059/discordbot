@@ -1,87 +1,6 @@
 import discord
 from discord.ext import commands
 
-# --- 幫助選單下拉控制 UI ---
-class HelpSelect(discord.ui.Select):
-    def __init__(self, mapping, bot):
-        self.mapping = mapping
-        self.bot = bot
-        options = [discord.SelectOption(label="🏠 首頁 (Home)", description="回到幫助選單首頁", emoji="🏠", value="Home")]
-        for cat_name in mapping.keys():
-            options.append(discord.SelectOption(label=cat_name, description=f"查看 {cat_name} 的指令", value=cat_name))
-            
-        super().__init__(placeholder="👇 請選擇一個指令分類來查看詳細內容...", min_values=1, max_values=1, options=options)
-
-    async def callback(self, interaction: discord.Interaction):
-        category = self.values[0]
-        if category == "Home":
-            embed = discord.Embed(title="🤖 機器人指令清單", description="以下是目前所有可用的指令分類：\n*(提示：點擊下方選單選擇分類，或在對話框輸入 `/` 查看詳細說明！)*", color=discord.Color.blurple())
-            embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-            for cat, cmds in self.mapping.items():
-                embed.add_field(name=cat, value=f"包含 {len(cmds)} 個指令", inline=True)
-        else:
-            embed = discord.Embed(title=f"{category} 指令清單", description="\n".join(self.mapping[category]), color=discord.Color.blue())
-        
-        await interaction.response.edit_message(embed=embed)
-
-class HelpView(discord.ui.View):
-    def __init__(self, mapping, author_id, bot):
-        super().__init__(timeout=180) # 3分鐘後選單自動失效
-        self.author_id = author_id
-        self.add_item(HelpSelect(mapping, bot))
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user.id != self.author_id:
-            await interaction.response.send_message("❌ 這是別人的幫助選單喔！請自己輸入 /help 來查詢。", ephemeral=True)
-            return False
-        return True
-
-# --- 管理員幫助選單下拉控制 UI ---
-class AdminHelpSelect(discord.ui.Select):
-    def __init__(self, mapping, bot):
-        self.mapping = mapping
-        self.bot = bot
-        options = [discord.SelectOption(label="🏠 總覽首頁", description="回到管理員指令總覽", emoji="🏠", value="Home")]
-        for cat_name in mapping.keys():
-            options.append(discord.SelectOption(label=cat_name, description=f"查看 {cat_name} 的指令", value=cat_name))
-            
-        super().__init__(placeholder="🛡️ 請選擇一個分類來查看管理員指令...", min_values=1, max_values=1, options=options)
-
-    async def callback(self, interaction: discord.Interaction):
-        category = self.values[0]
-        if category == "Home":
-            embed = discord.Embed(title="🛠️ 管理員指令清單 (總覽)", description="以下是目前系統載入的**所有指令**（包含隱藏與管理權限指令）：\n*(提示：點擊下方選單選擇分類查看詳細說明！)*", color=discord.Color.red())
-            embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-            for cat, cmds in self.mapping.items():
-                cmd_count = sum(block.count("**`") for block in cmds)
-                embed.add_field(name=cat, value=f"包含 {cmd_count} 個指令", inline=True)
-        else:
-            embed = discord.Embed(title=f"🛠️ {category} (管理員視角)", description="", color=discord.Color.dark_red())
-            
-            # 將指令分塊加入 Embed，避免超過 4096 字元限制
-            chunk = ""
-            for block in self.mapping[category]:
-                if len(chunk) + len(block) + 2 > 4000:
-                    embed.description = chunk.strip()
-                    break
-                chunk += block + "\n\n"
-            
-            embed.description = chunk.strip()
-        
-        await interaction.response.edit_message(embed=embed)
-
-class AdminHelpView(discord.ui.View):
-    def __init__(self, mapping, author_id, bot):
-        super().__init__(timeout=180)
-        self.author_id = author_id
-        self.add_item(AdminHelpSelect(mapping, bot))
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user.id != self.author_id:
-            await interaction.response.send_message("❌ 這是別人的幫助選單喔！請自己輸入 /adminhelp 來查詢。", ephemeral=True)
-            return False
-        return True
-
 class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -91,12 +10,14 @@ class Help(commands.Cog):
         await self.bot.db.db.commit()
 
         # --- 在這裡設定最新版本的更新內容 ---
-        self.current_version = "1.5"
+        self.current_version = "1.3"
         self.changelog_title = f"✨ 機器人更新日誌 (v{self.current_version})"
         self.changelog_text = (
-            "**🚀 實用資訊版機器人全新轉型！**\n"
-            "• 🧹 **移除經濟與等級系統：** 刪除等級、經驗值、個人檔案與趣味計數等娛樂系統，回歸極簡與實用定位。\n"
-            "• 🛠️ **架構優化：** 移除資料庫中不必要的資料表，提升機器人響應效能與穩定度。\n"
+            "**🔗 連結修復系統全面升級與功能調整！**\n"
+            "• 🛠️ **修復 Threads 影片預覽：** 解決了 Threads 分享連結 (`/share/...`) 複製後無法正確顯示/預覽影片的問題，改用全新的 `fixthreads.seria.moe` 解析。\n"
+            "• 🧹 **移除失效網域與舊邏輯：** 刪除已失效的 `vxthreads.net` 服務，並移除 `link_fixer.py` 中逆向替換網域的舊式 `self.fix_map`。\n"
+            "• ⚡ **進階路徑判定與新支援：** 新增支援 Bilibili、YouTube Shorts、Twitch Clips 與 Spotify 等平台的精準網址轉換，只針對特定短影片/剪輯路徑進行轉換，不影響一般正常連結。\n"
+            "• 🗑️ **移除星標留言板 (Starboard)：** 刪除已不再使用的星標留言板功能 (`starboard.py`) 與其資料庫設定。"
         )
 
         # 啟動時檢查是否需要推播更新
@@ -165,7 +86,7 @@ class Help(commands.Cog):
                     if cmd.hidden:
                         continue
                     
-                    # 過濾掉管理員專用的指令 (即使呼叫者是管理員，也不在普通 help 顯示)
+                    # 過濾掉管理員專用的指令 (不顯示)
                     is_admin_cmd = False
                     for check in cmd.checks:
                         qualname = getattr(check, '__qualname__', '')
@@ -181,7 +102,7 @@ class Help(commands.Cog):
                     except commands.CommandOnCooldown:
                         allowed = True # 例：指令在冷卻中依然顯示
                     except Exception:
-                        allowed = False # 缺乏權限或其他錯誤則隱藏
+                        allowed = False # 缺乏權限則隱藏
                         
                     if allowed:
                         usage = f" {cmd.signature}" if cmd.signature else ""
@@ -223,16 +144,15 @@ class Help(commands.Cog):
         if other_cmds:
             mapping["📌 其他指令"] = other_cmds
 
-        # 建立首頁的 Embed
-        embed = discord.Embed(title="🤖 機器人指令清單", description="以下是目前所有可用的指令分類：\n*(提示：點擊下方選單選擇分類，或在對話框輸入 `/` 查看詳細說明！)*", color=discord.Color.blurple())
+        # 建立 Embed 顯示所有可用指令 (直接呈現，不使用下拉選單)
+        embed = discord.Embed(title="🤖 機器人可用指令清單", description="以下是您目前可以使用的所有指令：", color=discord.Color.blurple())
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-        for cat, cmds in mapping.items():
-            embed.add_field(name=cat, value=f"包含 {len(cmds)} 個指令", inline=True)
-        embed.set_footer(text=f"查詢者: {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
         
-        # 綁定下拉式選單 View
-        view = HelpView(mapping, ctx.author.id, self.bot)
-        await ctx.send(embed=embed, view=view)
+        for cat, cmds in mapping.items():
+            embed.add_field(name=cat, value="\n".join(cmds), inline=False)
+            
+        embed.set_footer(text=f"查詢者: {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
+        await ctx.send(embed=embed)
 
     @commands.hybrid_command(name="changelog", aliases=["update", "更新", "更新日誌"], help="查看機器人的最新更新內容")
     async def changelog(self, ctx):
@@ -259,81 +179,9 @@ class Help(commands.Cog):
         await ctx.send(f"✅ 設定成功！未來最新的更新資訊都會發布在 {ctx.channel.mention}。", embed=embed)
         
         # 核心修復：設定頻道時，故意將資料庫中的版本號設為一個舊的或不存在的值 (例如 "0.0.0")
-        # 這樣當機器人下次帶著新版本號重啟時，版本比對 (last_version != self.current_version) 才會是 True，進而觸發更新推播。
         await self.bot.db.db.execute('INSERT OR REPLACE INTO update_settings (guild_id, channel_id, last_version) VALUES (?, ?, ?)', 
                        (ctx.guild.id, ctx.channel.id, "0.0.0"))
         await self.bot.db.db.commit()
-
-    @commands.hybrid_command(name="adminhelp", aliases=["allcmds", "ah"], help="【管理員專用】查看所有指令 (包含隱藏及管理權限指令)")
-    @commands.has_permissions(administrator=True)
-    async def admin_help(self, ctx):
-        categorized_cog_names = []
-        mapping = {} 
-
-        for category, cogs in self.categorized_cogs.items():
-            category_cmds = []
-            for cog_name, cog_desc in cogs.items():
-                categorized_cog_names.append(cog_name)
-                cog = self.bot.get_cog(cog_name)
-                if not cog:
-                    continue
-                
-                cog_cmds = []
-                for cmd in sorted(cog.get_commands(), key=lambda c: c.name):
-                    usage = f" {cmd.signature}" if cmd.signature else ""
-                    hidden_tag = " 👻*(隱藏)*" if cmd.hidden else ""
-                    
-                    is_admin_cmd = False
-                    for check in cmd.checks:
-                        qualname = getattr(check, '__qualname__', '')
-                        if 'has_permissions' in qualname or 'has_guild_permissions' in qualname or 'is_owner' in qualname:
-                            is_admin_cmd = True
-                            break
-                    admin_tag = " 🛡️*(管理)*" if is_admin_cmd else ""
-                    
-                    # 優化排版，將參數與說明分層
-                    prefix = "/" if isinstance(cmd, commands.HybridCommand) else "!"
-                    cog_cmds.append(f"**`{prefix}{cmd.name}{usage}`**{hidden_tag}{admin_tag}\n└ {cmd.short_doc or '無說明'}")
-                
-                if cog_cmds:
-                    category_cmds.append(f"**【 {cog_desc} 】**\n" + "\n".join(cog_cmds))
-            
-            if category_cmds:
-                mapping[category] = category_cmds
-
-        other_cmds = []
-        for cmd in sorted(self.bot.commands, key=lambda c: c.name):
-            if cmd.cog_name == "NSFW" or cmd.cog_name in categorized_cog_names:
-                continue
-            
-            usage = f" {cmd.signature}" if cmd.signature else ""
-            hidden_tag = " 👻*(隱藏)*" if cmd.hidden else ""
-            
-            is_admin_cmd = False
-            for check in cmd.checks:
-                qualname = getattr(check, '__qualname__', '')
-                if 'has_permissions' in qualname or 'has_guild_permissions' in qualname or 'is_owner' in qualname:
-                    is_admin_cmd = True
-                    break
-            admin_tag = " 🛡️*(管理)*" if is_admin_cmd else ""
-            
-            prefix = "/" if isinstance(cmd, commands.HybridCommand) else "!"
-            other_cmds.append(f"**`{prefix}{cmd.name}{usage}`**{hidden_tag}{admin_tag}\n└ {cmd.short_doc or '無說明'}")
-            
-        if other_cmds:
-            mapping["📌 其他未分類指令"] = [ "\n".join(other_cmds) ]
-
-        embed = discord.Embed(title="🛠️ 管理員指令清單 (總覽)", description="以下是目前系統載入的**所有指令**（包含隱藏與管理權限指令）：\n*(提示：點擊下方選單選擇分類查看詳細說明！)*", color=discord.Color.red())
-        embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-        
-        for cat, cmds in mapping.items():
-            cmd_count = sum(block.count("**`") for block in cmds)
-            embed.add_field(name=cat, value=f"包含 {cmd_count} 個指令", inline=True)
-            
-        embed.set_footer(text=f"查詢者: {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
-        
-        view = AdminHelpView(mapping, ctx.author.id, self.bot)
-        await ctx.send(embed=embed, view=view, ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(Help(bot))
