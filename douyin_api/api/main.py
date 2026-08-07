@@ -1,52 +1,112 @@
 import os
 import aiohttp
+import asyncio
+import yt_dlp
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 
 app = FastAPI(title="Douyin Embed Fixer")
 
-async def fetch_video_info(video_id: str) -> dict:
+async def get_ttwid(session: aiohttp.ClientSession) -> str | None:
     """
-    呼叫自建/公開的 Douyin_TikTok_Download_API 獲取抖音影片的真實資料
+    動態註冊並獲取抖音的 ttwid cookie，以繞過安全驗證頁面
     """
-    # 支援設定自建 API 位址，預設使用公開備份 API 端點
-    api_base = os.getenv("DOUYIN_DOWNLOAD_API_URL", "https://api.douyin.wtf")
-    video_url = f"https://www.douyin.com/video/{video_id}"
-    api_url = f"{api_base.rstrip('/')}/api/hybrid/video_data?url={video_url}&minimal=false"
-    
+    url = "https://ttwid.bytedance.com/ttwid/union/register/"
+    payload = {
+        "region": "cn",
+        "aid": 1768,
+        "needFid": False,
+        "service": "www.ixigua.com",
+        "migrate_info": {"ticket": "", "source": "node"},
+        "cbUrlProtocol": "https",
+        "union": True
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
     try:
-        # 由於 Vercel Serverless 每一次呼叫都是獨立的，這裡直接開啟並關閉 ClientSession
-        async with aiohttp.ClientSession() as session:
-            async with session.get(api_url, timeout=6) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    video_data = data.get("video_data", {})
-                    if video_data:
-                        # 優先取用無浮水印影片直鏈 (nwm_video_url)，其次為有浮水印影片 (wm_video_url)
-                        nwm_url = video_data.get("nwm_video_url")
-                        wm_url = video_data.get("wm_video_url")
-                        return {
-                            "title": video_data.get("video_title") or f"抖音影片 (ID: {video_id})",
-                            "video_url": nwm_url or wm_url,
-                            "cover_url": video_data.get("cover_image_url") or "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500"
-                        }
+        async with session.post(url, json=payload, headers=headers) as response:
+            set_cookie = response.headers.get("Set-Cookie", "")
+            if "ttwid=" in set_cookie:
+                return set_cookie.split("ttwid=")[1].split(";")[0]
     except Exception as e:
-        print(f"[DouyinAPI] 呼叫下載 API 發生錯誤: {e}")
+        print(f"[DouyinAPI] 獲取 ttwid 失敗: {e}")
+    return None
+
+async def extract_douyin_video(video_id: str) -> dict:
+    """
+    使用 yt-dlp 與動態 ttwid 擷取影片真實資訊與無浮水印連結
+    """
+    url = f"https://www.douyin.com/video/{video_id}"
+    
+    # 1. 取得動態 ttwid Cookie
+    async with aiohttp.ClientSession() as session:
+        ttwid = await get_ttwid(session)
+        if not ttwid:
+            print("[DouyinAPI] 無法取得 ttwid，跳過解析。")
+            return {}
+
+    # 2. 設定 yt-dlp 參數
+    ydl_opts = {
+        'quiet': True,
+        'no_warnings': True,
+        'skip_download': True, # 僅擷取中繼資料，不下載影片
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Referer': 'https://www.douyin.com/',
+            'Cookie': f'ttwid={ttwid}'
+        }
+    }
+    
+    loop = asyncio.get_event_loop()
+    try:
+        def extract():
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                return ydl.extract_info(url, download=False)
+                
+        # 由於 yt-dlp 為同步程式，在 thread executor 中執行以防止阻塞 Event Loop
+        info = await loop.run_in_executor(None, extract)
+        if not info:
+            return {}
+            
+        title = info.get('title') or f"抖音影片 (ID: {video_id})"
+        thumbnail = info.get('thumbnail') or "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500"
+        
+        # 3. 尋找無浮水印 (No-Watermark) 影片位址 (抖音 CDN 直鏈一般在 365yg.com)
+        video_url = None
+        formats = info.get('formats', [])
+        for fmt in formats:
+            fmt_url = fmt.get('url')
+            if fmt_url and 'watermark=1' not in fmt_url and 'api-play.amemv.com' not in fmt_url:
+                video_url = fmt_url
+                break
+                
+        # 備用：若找不到無浮水印格式，則使用 yt-dlp 預設格式
+        if not video_url:
+            video_url = info.get('url')
+            
+        return {
+            "title": title,
+            "video_url": video_url,
+            "cover_url": thumbnail
+        }
+    except Exception as e:
+        print(f"[DouyinAPI] yt-dlp 解析失敗: {e}")
     return {}
 
 @app.get("/video/{video_id}", response_class=HTMLResponse)
 async def get_video_embed(video_id: str, request: Request):
     """
-    接收影片 ID，自動向 Douyin_TikTok_Download_API 解析影片資料並渲染為 Open Graph HTML
+    接收影片 ID，透過 yt-dlp 本地解析無浮水印影片，並回傳支援 Discord 內置播放的 Open Graph HTML
     """
-    # 嘗試抓取真實影片資料
-    info = await fetch_video_info(video_id)
+    info = await extract_douyin_video(video_id)
     
+    # 優先取用解析出的真實資訊，否則以測試 Dummy 資源為最後防線
     title = info.get("title") or f"抖音影片 (ID: {video_id})"
     video_url = info.get("video_url") or "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
     cover_url = info.get("cover_url") or "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500"
 
-    # 建立讓 Discord 爬蟲能讀取的標準 Open Graph HTML 網頁
     html_content = f"""<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
