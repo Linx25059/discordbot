@@ -24,7 +24,8 @@ class Help(commands.Cog):
         # 重新整理成大分類結構
         self.categorized_cogs = {
             "🔍 查詢與資訊": {
-                "Weather": "🌤️ 天氣預報查詢"
+                "Weather": "🌤️ 天氣預報查詢",
+                "AIChat": "🤖 AI 智慧對話"
             },
             "🎵 影音與趣味互動": {
                 "Music": "🎧 音樂點播",

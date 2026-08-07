@@ -101,6 +101,10 @@ async def sync_commands(ctx, scope: str = ""):
             bot.tree.clear_commands(guild=ctx.guild)
             await bot.tree.sync(guild=ctx.guild)
             await ctx.send("🧹 已成功清除當前伺服器的專屬指令！（這能完美解決指令重複、舊指令卡住的問題）\n👉 **請按 `Ctrl + R` 或重新載入 Discord 來讓畫面更新。**")
+        elif scope == "clear_global":
+            bot.tree.clear_commands(guild=None)
+            await bot.tree.sync()
+            await ctx.send("🧹 已成功清除全域 (Global) 的斜線指令！所有舊的、殘留的斜線指令已從 Discord 官方伺服器移除。")
         elif scope == "here":
             bot.tree.copy_global_to(guild=ctx.guild)
             synced = await bot.tree.sync(guild=ctx.guild)
