@@ -1,7 +1,11 @@
 import discord
 from discord.ext import commands
 import re
+import os
+import logging
 from urllib.parse import urlparse, urlunparse
+
+logger = logging.getLogger(__name__)
 
 class LinkFixer(commands.Cog):
     def __init__(self, bot):
@@ -120,6 +124,46 @@ class LinkFixer(commands.Cog):
             pass
         return None
 
+    async def resolve_douyin_url(self, url: str) -> str | None:
+        """
+        將抖音的短網址或標準網址轉換為中繼端網址，支援非同步跳轉追蹤
+        """
+        try:
+            parsed = urlparse(url)
+            netloc = parsed.netloc.lower()
+            path = parsed.path
+            
+            domain = netloc
+            if domain.startswith('www.'):
+                domain = domain[4:]
+                
+            proxy_base = os.getenv("DOUYIN_PROXY_BASE_URL", "https://your-douyin-proxy.vercel.app")
+
+            # A. 處理手機端分享短網址 v.douyin.com
+            if domain == 'v.douyin.com':
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                }
+                # aiohttp 連線池非同步跟隨跳轉以獲取真實的長網址
+                async with self.bot.session.get(url, headers=headers, allow_redirects=True, timeout=5) as response:
+                    if response.status == 200:
+                        final_url = str(response.url)
+                        final_parsed = urlparse(final_url)
+                        id_match = re.search(r'/video/(\d+)', final_parsed.path)
+                        if id_match:
+                            video_id = id_match.group(1)
+                            return f"{proxy_base.rstrip('/')}/video/{video_id}"
+                            
+            # B. 處理標準網頁版網址 douyin.com/video/...
+            elif domain == 'douyin.com' and path.startswith('/video/'):
+                id_match = re.search(r'/video/(\d+)', path)
+                if id_match:
+                    video_id = id_match.group(1)
+                    return f"{proxy_base.rstrip('/')}/video/{video_id}"
+        except Exception as e:
+            logger.warning(f"解析抖音網址時發生錯誤: {e}")
+        return None
+
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot:
@@ -141,7 +185,14 @@ class LinkFixer(commands.Cog):
                 replaced_mapping[url] = fixed
                 continue
 
-            # 2. 處理其他一般網址的同步轉換
+            # 2. 嘗試非同步解析 Douyin 網址 (短網址 & 標準網址)
+            fixed = await self.resolve_douyin_url(url)
+            if fixed:
+                fixed_urls.append(fixed)
+                replaced_mapping[url] = fixed
+                continue
+
+            # 3. 處理其他一般網址的同步轉換
             fixed = self.fix_single_url(url)
             if fixed:
                 fixed_urls.append(fixed)
