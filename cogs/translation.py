@@ -6,6 +6,7 @@ import aiohttp
 import logging
 import traceback
 import re
+import urllib.parse
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -51,64 +52,125 @@ class Translation(commands.Cog):
         ''')
         await self.bot.db.db.commit()
 
+    def get_lang_code(self, lang_name: str) -> str:
+        """
+        將可讀的語言名稱轉換為 Google 翻譯使用的 ISO 語言代碼
+        """
+        lang_name_lower = lang_name.lower().strip()
+        # 支援繁體中文的各種寫法
+        if "traditional" in lang_name_lower or "繁體" in lang_name_lower or "繁中" in lang_name_lower or "zh-tw" in lang_name_lower:
+            return "zh-TW"
+        # 簡體中文
+        if "simplified" in lang_name_lower or "簡體" in lang_name_lower or "簡中" in lang_name_lower or "zh-cn" in lang_name_lower:
+            return "zh-CN"
+            
+        # 其他常見語言映射
+        name_map = {
+            "english": "en", "英文": "en", "英語": "en",
+            "japanese": "ja", "日文": "ja", "日語": "ja",
+            "korean": "ko", "韓文": "ko", "韓語": "ko",
+            "french": "fr", "法文": "fr", "法語": "fr",
+            "german": "de", "德文": "de", "德語": "de",
+            "spanish": "es", "西班牙文": "es", "西班牙語": "es",
+            "russian": "ru", "俄文": "ru", "俄語": "ru",
+            "vietnamese": "vi", "越南文": "vi", "越南語": "vi",
+            "thai": "th", "泰文": "th", "泰語": "th"
+        }
+        return name_map.get(lang_name_lower, "en")
+
     async def translate_text(self, text: str, target_lang: str, prompt_type: str = "direct") -> Optional[str]:
         """
-        核心翻譯函式：呼叫 Gemini API 進行翻譯與語言偵測
+        核心翻譯函式：優先使用 Gemini AI，若遇到錯誤則自動啟用 Google 翻譯備用方案
         """
+        # 1. 優先嘗試 Gemini AI
         api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            logger.error("未在 .env 中設定 GEMINI_API_KEY")
-            return None
+        if api_key:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key}"
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key}"
+            if prompt_type == "auto":
+                prompt = (
+                    f"You are an expert translator bot.\n"
+                    f"Translate the following text into {target_lang}.\n"
+                    f"If the text is already in {target_lang} or is just emojis/mentions/numbers/links/command prefixes (like !, /) and doesn't need translation, output ONLY the string \"NO_TRANSLATION_NEEDED\".\n"
+                    f"Otherwise, output ONLY the translated text. Do not add any conversational filler, explanations, or notes.\n\n"
+                    f"Text to translate:\n"
+                    f"{text}"
+                )
+            else:
+                prompt = (
+                    f"You are an expert translator bot.\n"
+                    f"Translate the following text into {target_lang}.\n"
+                    f"Output ONLY the translated text. Do not add any conversational filler, explanations, or notes.\n\n"
+                    f"Text to translate:\n"
+                    f"{text}"
+                )
 
-        if prompt_type == "auto":
-            # 用於自動翻譯頻道的 Prompts (包含 NO_TRANSLATION_NEEDED 過濾機制)
-            prompt = (
-                f"You are an expert translator bot.\n"
-                f"Translate the following text into {target_lang}.\n"
-                f"If the text is already in {target_lang} or is just emojis/mentions/numbers/links/command prefixes (like !, /) and doesn't need translation, output ONLY the string \"NO_TRANSLATION_NEEDED\".\n"
-                f"Otherwise, output ONLY the translated text. Do not add any conversational filler, explanations, or notes.\n\n"
-                f"Text to translate:\n"
-                f"{text}"
-            )
-        else:
-            # 用於主動請求（如指令、右鍵、國旗反應）
-            prompt = (
-                f"You are an expert translator bot.\n"
-                f"Translate the following text into {target_lang}.\n"
-                f"Output ONLY the translated text. Do not add any conversational filler, explanations, or notes.\n\n"
-                f"Text to translate:\n"
-                f"{text}"
-            )
-
-        payload = {
-            "contents": [{
-                "parts": [{
-                    "text": prompt
+            payload = {
+                "contents": [{
+                    "parts": [{
+                        "text": prompt
+                    }]
                 }]
-            }]
-        }
+            }
 
+            try:
+                # 設定 5 秒超時，防止 API 掛起延誤回應
+                async with self.bot.session.post(url, json=payload, timeout=5) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            if parts:
+                                return parts[0].get("text", "").strip()
+                        logger.warning("Gemini API 回傳資料格式異常，啟用備用 Google 翻譯")
+                    else:
+                        logger.warning(f"Gemini API 狀態碼異常 ({response.status})，啟用備用 Google 翻譯")
+            except Exception as e:
+                logger.warning(f"呼叫 Gemini 翻譯失敗 ({e})，啟用備用 Google 翻譯")
+
+        # 2. 備用方案：使用免費 Google 翻譯 Web API
+        logger.info("正在使用備用 Google 翻譯端點...")
         try:
-            async with self.bot.session.post(url, json=payload) as response:
+            target_code = self.get_lang_code(target_lang)
+            encoded_text = urllib.parse.quote(text)
+            free_url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_code}&dt=t&q={encoded_text}"
+
+            headers = {
+                "User-Agent": "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com/resources)"
+            }
+
+            async with self.bot.session.get(free_url, headers=headers, timeout=5) as response:
                 if response.status == 200:
                     data = await response.json()
-                    candidates = data.get("candidates", [])
-                    if candidates:
-                        parts = candidates[0].get("content", {}).get("parts", [])
-                        if parts:
-                            return parts[0].get("text", "").strip()
-                    logger.error("Gemini API 回傳資料格式異常或無生成內容")
-                    return None
+                    translated_parts = []
+                    for part in data[0]:
+                        if part[0]:
+                            translated_parts.append(part[0])
+
+                    translated_text = "".join(translated_parts).strip()
+                    detected_source = data[2]
+
+                    # 在自動翻譯頻道模式下，套用過濾條件
+                    if prompt_type == "auto":
+                        # 偵測到的語言與目標語言代碼一致，說明不需翻譯
+                        if detected_source.lower() == target_code.lower():
+                            return "NO_TRANSLATION_NEEDED"
+
+                        # 翻譯前後內容一致，說明是純連結、純表情或純數字
+                        orig_clean = "".join(text.split()).lower()
+                        trans_clean = "".join(translated_text.split()).lower()
+                        if orig_clean == trans_clean:
+                            return "NO_TRANSLATION_NEEDED"
+
+                    return translated_text
                 else:
-                    error_text = await response.text()
-                    logger.error(f"Gemini API 回傳錯誤狀態碼 {response.status}: {error_text}")
-                    return None
+                    logger.error(f"備用 Google 翻譯 API 狀態碼異常 ({response.status})")
         except Exception as e:
-            logger.error(f"呼叫 Gemini 翻譯 API 時發生錯誤: {e}")
+            logger.error(f"備用 Google 翻譯執行失敗: {e}")
             traceback.print_exc()
-            return None
+
+        return None
 
     @commands.hybrid_command(
         name="translate",
