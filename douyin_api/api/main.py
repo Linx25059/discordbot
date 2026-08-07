@@ -89,8 +89,10 @@ async def extract_douyin_video(video_id: str) -> dict:
                     break
                     
         if video_id_key:
-            video_url = f"https://aweme.snssdk.com/aweme/v1/play/?video_id={video_id_key}"
+            # ⚠️ 【關鍵修正】在網址後方加上 &.mp4 偽參數，誘導 Discord 爬蟲識別為直鏈影片進行內置播放渲染
+            video_url = f"https://aweme.snssdk.com/aweme/v1/play/?video_id={video_id_key}&.mp4"
         else:
+            # 備用：若無法擷取金鑰，使用 yt-dlp 預設格式
             video_url = info.get('url')
             
         return {
@@ -120,7 +122,7 @@ async def get_video_embed(video_id: str, request: Request):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
     
-    <!-- ⚠️ 【關鍵字】宣告瀏覽器與爬蟲不發送 Referer 標頭，以完美繞過抖音 CDN 的防盜鏈阻擋 -->
+    <!-- 宣告瀏覽器與爬蟲不發送 Referer 標頭，以完美繞過抖音 CDN 的防盜鏈阻擋 -->
     <meta name="referrer" content="no-referrer">
     
     <!-- 核心 Discord/Facebook Open Graph 標籤 -->
