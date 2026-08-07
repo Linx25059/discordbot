@@ -45,7 +45,8 @@ class LinkFixer(commands.Cog):
                 
         # 4. Threads
         elif domain in ('threads.net', 'threads.com'):
-            return urlunparse(parsed._replace(netloc='fixthreads.seria.moe'))
+            if not path.startswith('/share/'):
+                return urlunparse(parsed._replace(netloc='fixthreads.seria.moe'))
             
         # 5. Reddit
         elif domain in ('reddit.com', 'redditmedia.com'):
@@ -84,6 +85,41 @@ class LinkFixer(commands.Cog):
                 
         return None
 
+    async def resolve_threads_share_url(self, url: str) -> str | None:
+        """
+        將 Threads 的 /share/ 短網址解析並還原為標準的 post 網址，並替換為 fixthreads.seria.moe
+        """
+        try:
+            parsed = urlparse(url)
+            netloc = parsed.netloc.lower()
+            path = parsed.path
+            
+            domain = netloc
+            if domain.startswith('www.'):
+                domain = domain[4:]
+                
+            if domain in ('threads.net', 'threads.com') and path.startswith('/share/'):
+                # aiohttp 會自動處理 Threads share 連結的所有重新導向，並還原至真實 post 網址
+                async with self.bot.session.get(url, allow_redirects=True) as response:
+                    if response.status == 200:
+                        final_url = str(response.url)
+                        final_parsed = urlparse(final_url)
+                        final_netloc = final_parsed.netloc.lower()
+                        final_domain = final_netloc
+                        if final_domain.startswith('www.'):
+                            final_domain = final_domain[4:]
+                            
+                        # 確保重新導向後是 Threads 的貼文網址 (例如 /@user/post/post_id)
+                        if final_domain in ('threads.net', 'threads.com') and '/post/' in final_parsed.path:
+                            fixed_url = urlunparse(final_parsed._replace(
+                                netloc='fixthreads.seria.moe',
+                                query=''
+                            ))
+                            return fixed_url
+        except Exception:
+            pass
+        return None
+
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot:
@@ -93,22 +129,33 @@ class LinkFixer(commands.Cog):
         if not self.url_pattern.search(message.content):
             return
 
+        urls = self.url_pattern.findall(message.content)
         fixed_urls = []
+        replaced_mapping = {}
 
-        def replacer(match):
-            url = match.group(1)
+        for url in urls:
+            # 1. 優先嘗試非同步解析 Threads 的 /share/ 網址
+            fixed = await self.resolve_threads_share_url(url)
+            if fixed:
+                fixed_urls.append(fixed)
+                replaced_mapping[url] = fixed
+                continue
+
+            # 2. 處理其他一般網址的同步轉換
             fixed = self.fix_single_url(url)
             if fixed:
                 fixed_urls.append(fixed)
-                return fixed
-            return url
-
-        # 替換訊息中的所有符合條件的網址
-        new_content = self.url_pattern.sub(replacer, message.content)
+                replaced_mapping[url] = fixed
 
         # 若沒有任何網址被修改，則不進行後續動作
-        if not fixed_urls:
+        if not replaced_mapping:
             return
+
+        # 依照網址長度降序替換，防止子字串取代錯誤
+        new_content = message.content
+        for orig in sorted(replaced_mapping.keys(), key=len, reverse=True):
+            fixed = replaced_mapping[orig]
+            new_content = new_content.replace(orig, fixed)
 
         try:
             # 嘗試取得頻道中的 Webhook
