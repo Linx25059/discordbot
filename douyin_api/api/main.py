@@ -1,4 +1,5 @@
 import os
+import re
 import aiohttp
 import asyncio
 import yt_dlp
@@ -36,7 +37,7 @@ async def get_ttwid(session: aiohttp.ClientSession) -> str | None:
 
 async def extract_douyin_video(video_id: str) -> dict:
     """
-    使用 yt-dlp 擷取影片真實資訊與無浮水印連結
+    使用 yt-dlp 擷取影片真實資訊與可外連的無浮水印 API 播放連結
     """
     url = f"https://www.douyin.com/video/{video_id}"
     
@@ -55,7 +56,7 @@ async def extract_douyin_video(video_id: str) -> dict:
         'quiet': True,
         'no_warnings': True,
         'skip_download': True,
-        'nocachedir': True,  # ⚠️ 【關鍵字】停用快取寫入以避免 Vercel 唯讀檔案系統報錯
+        'nocachedir': True,  # 停用快取寫入以避免 Vercel 唯讀檔案系統報錯
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Referer': 'https://www.douyin.com/',
@@ -76,17 +77,23 @@ async def extract_douyin_video(video_id: str) -> dict:
         title = info.get('title') or f"抖音影片 (ID: {video_id})"
         thumbnail = info.get('thumbnail') or "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500"
         
-        # 尋找無浮水印 (No-Watermark) 影片位址 (抖音 CDN 直鏈一般在 365yg.com)
-        video_url = None
+        # 4. 從影片格式列表中提取出 Bytedance 影片的 video_id 金鑰 (例如 v0d00fg10000...)
+        # 並藉此組裝出免防盜鏈 (無 Referer 阻擋) 的播放接口，以供 Discord 正常讀取
+        video_id_key = None
         formats = info.get('formats', [])
         for fmt in formats:
             fmt_url = fmt.get('url')
-            if fmt_url and 'watermark=1' not in fmt_url and 'api-play.amemv.com' not in fmt_url:
-                video_url = fmt_url
-                break
-                
-        # 備用：若找不到無浮水印格式，則使用 yt-dlp 預設格式
-        if not video_url:
+            if fmt_url:
+                match = re.search(r'video_id=([a-zA-Z0-9_]+)', fmt_url)
+                if match:
+                    video_id_key = match.group(1)
+                    break
+                    
+        if video_id_key:
+            # aweme/v1/play/ 為無浮水印播放接口，允許外連與爬蟲直接下載
+            video_url = f"https://aweme.snssdk.com/aweme/v1/play/?video_id={video_id_key}"
+        else:
+            # 備用：若無法擷取金鑰，使用 yt-dlp 預設格式
             video_url = info.get('url')
             
         return {
@@ -101,11 +108,10 @@ async def extract_douyin_video(video_id: str) -> dict:
 @app.get("/video/{video_id}", response_class=HTMLResponse)
 async def get_video_embed(video_id: str, request: Request):
     """
-    接收影片 ID，透過 yt-dlp 本地解析無浮水印影片，並回傳支援 Discord 內置播放的 Open Graph HTML
+    接收影片 ID，透過 yt-dlp 本地解析並組裝出免防盜鏈的播放連結，回傳供 Discord 內置播放的 HTML
     """
     info = await extract_douyin_video(video_id)
     
-    # 優先取用解析出的真實資訊，否則以測試 Dummy 資源為最後防線
     title = info.get("title") or f"抖音影片 (ID: {video_id})"
     video_url = info.get("video_url") or "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
     cover_url = info.get("cover_url") or "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500"
