@@ -36,22 +36,26 @@ async def get_ttwid(session: aiohttp.ClientSession) -> str | None:
 
 async def extract_douyin_video(video_id: str) -> dict:
     """
-    使用 yt-dlp 與動態 ttwid 擷取影片真實資訊與無浮水印連結
+    使用 yt-dlp 擷取影片真實資訊與無浮水印連結
     """
     url = f"https://www.douyin.com/video/{video_id}"
     
-    # 1. 取得動態 ttwid Cookie
-    async with aiohttp.ClientSession() as session:
-        ttwid = await get_ttwid(session)
-        if not ttwid:
-            print("[DouyinAPI] 無法取得 ttwid，跳過解析。")
-            return {}
+    # 優先從環境變數讀取靜態 ttwid Cookie，若沒有則嘗試動態註冊
+    ttwid = os.getenv("DOUYIN_COOKIE_TTWID")
+    if not ttwid:
+        async with aiohttp.ClientSession() as session:
+            ttwid = await get_ttwid(session)
+            
+    if not ttwid:
+        print("[DouyinAPI] 無法取得 ttwid，跳過解析。")
+        return {}
 
-    # 2. 設定 yt-dlp 參數
+    # 設定 yt-dlp 參數
     ydl_opts = {
         'quiet': True,
         'no_warnings': True,
-        'skip_download': True, # 僅擷取中繼資料，不下載影片
+        'skip_download': True,
+        'nocachedir': True,  # ⚠️ 【關鍵字】停用快取寫入以避免 Vercel 唯讀檔案系統報錯
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Referer': 'https://www.douyin.com/',
@@ -65,7 +69,6 @@ async def extract_douyin_video(video_id: str) -> dict:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 return ydl.extract_info(url, download=False)
                 
-        # 由於 yt-dlp 為同步程式，在 thread executor 中執行以防止阻塞 Event Loop
         info = await loop.run_in_executor(None, extract)
         if not info:
             return {}
@@ -73,7 +76,7 @@ async def extract_douyin_video(video_id: str) -> dict:
         title = info.get('title') or f"抖音影片 (ID: {video_id})"
         thumbnail = info.get('thumbnail') or "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500"
         
-        # 3. 尋找無浮水印 (No-Watermark) 影片位址 (抖音 CDN 直鏈一般在 365yg.com)
+        # 尋找無浮水印 (No-Watermark) 影片位址 (抖音 CDN 直鏈一般在 365yg.com)
         video_url = None
         formats = info.get('formats', [])
         for fmt in formats:
