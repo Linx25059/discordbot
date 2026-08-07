@@ -10,14 +10,12 @@ class Help(commands.Cog):
         await self.bot.db.db.commit()
 
         # --- 在這裡設定最新版本的更新內容 ---
-        self.current_version = "1.3"
+        self.current_version = "1.3.1"
         self.changelog_title = f"✨ 機器人更新日誌 (v{self.current_version})"
         self.changelog_text = (
-            "**🔗 連結修復系統全面升級與功能調整！**\n"
-            "• 🛠️ **修復 Threads 影片預覽：** 解決了 Threads 分享連結 (`/share/...`) 複製後無法正確顯示/預覽影片的問題，改用全新的 `fixthreads.seria.moe` 解析。\n"
-            "• 🧹 **移除失效網域與舊邏輯：** 刪除已失效的 `vxthreads.net` 服務，並移除 `link_fixer.py` 中逆向替換網域的舊式 `self.fix_map`。\n"
-            "• ⚡ **進階路徑判定與新支援：** 新增支援 Bilibili、YouTube Shorts、Twitch Clips 與 Spotify 等平台的精準網址轉換，只針對特定短影片/剪輯路徑進行轉換，不影響一般正常連結。\n"
-            "• 🗑️ **移除星標留言板 (Starboard)：** 刪除已不再使用的星標留言板功能 (`starboard.py`) 與其資料庫設定。"
+            "**🌐 跨國聊天翻譯功能上線 & Threads 連結修復增強！**\n"
+            "• 🌐 **新增 Gemini 聊天翻譯系統：** 串接 Gemini 3.5 Flash 高速模型。支援 `/translate` 翻譯指令、訊息右鍵選單 `翻譯此訊息` (貼心自動判斷中英)、國旗 Emoji 反應直接翻譯，以及 `/translation_setup` 可設定特定頻道自動翻譯所有外文。\n"
+            "• 🔗 **修復 Threads 手機分享網址：** 解決了從 Threads 手機 App 複製的分享連結 (`/share/...` 格式短網址) 導致預覽失效的問題，已升級為自動追蹤重新導向並解析還原為標準貼文網址。"
         )
 
         # 啟動時檢查是否需要推播更新
@@ -39,6 +37,7 @@ class Help(commands.Cog):
             },
             "🛠️ 實用工具與自動化": {
                 "LinkFixer": "🔗 社群連結修復",
+                "Translation": "🌐 跨國聊天翻譯",
                 "AutoVoice": "🎙️ 動態語音頻道",
                 "Broadcast": "📡 新聞與遊戲推播",
                 "AutoReply": "💬 自動回覆系統",
