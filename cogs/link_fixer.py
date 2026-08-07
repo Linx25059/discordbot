@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 import re
 import os
 import logging
@@ -12,6 +13,17 @@ class LinkFixer(commands.Cog):
         self.bot = bot
         # 建立正則表達式，用來抓取訊息中的任何可能網址
         self.url_pattern = re.compile(r'(https?://[^\s>\|]+)')
+        
+        # 註冊右鍵選單指令，支援個人安裝 (User-Installable) 應用程式在所有伺服器使用
+        self.ctx_menu = app_commands.ContextMenu(
+            name='修復訊息中的連結',
+            callback=self.fix_links_ctx
+        )
+        self.bot.tree.add_command(self.ctx_menu)
+
+    def cog_unload(self):
+        # 卸載 Cog 時移除右鍵選單指令
+        self.bot.tree.remove_command(self.ctx_menu.name, type=self.ctx_menu.type)
 
     def fix_single_url(self, url: str) -> str | None:
         try:
@@ -265,6 +277,71 @@ class LinkFixer(commands.Cog):
             
             reply_content = "🔗 **為您提供可預覽的連結：**\n" + "\n".join(fixed_urls)
             await message.reply(reply_content, mention_author=False)
+
+    async def fix_links_ctx(self, interaction: discord.Interaction, message: discord.Message):
+        """
+        右鍵選單指令：自動修復訊息中含有的 Threads、抖音或 Twitter 等可預覽連結
+        """
+        # 快速檢查訊息是否含有網址
+        if not self.url_pattern.search(message.content):
+            await interaction.response.send_message("❌ 這則訊息中沒有偵測到任何網址喔！", ephemeral=True)
+            return
+
+        # 延遲回應以避免非同步解析超時
+        await interaction.response.defer(ephemeral=False)
+
+        urls = self.url_pattern.findall(message.content)
+        fixed_urls = []
+        replaced_mapping = {}
+
+        for url in urls:
+            # 1. 優先嘗試非同步解析 Threads 的 /share/ 網址
+            fixed = await self.resolve_threads_share_url(url)
+            if fixed:
+                fixed_urls.append(fixed)
+                replaced_mapping[url] = fixed
+                continue
+
+            # 2. 嘗試非同步解析 Douyin 網址 (短網址 & 標準網址)
+            fixed = await self.resolve_douyin_url(url)
+            if fixed:
+                fixed_urls.append(fixed)
+                replaced_mapping[url] = fixed
+                continue
+
+            # 3. 處理其他一般網址的同步轉換
+            fixed = self.fix_single_url(url)
+            if fixed:
+                fixed_urls.append(fixed)
+                replaced_mapping[url] = fixed
+
+        if not fixed_urls:
+            await interaction.followup.send("❌ 這則訊息中的網址不需要修復，或是不支援修復喔！", ephemeral=True)
+            return
+
+        # 整理修復後的連結輸出
+        # 如果是包含抖音分享文字的格式，僅保留連結
+        is_douyin_share = False
+        for url in urls:
+            if 'v.douyin.com' in url or 'douyin.com' in url:
+                if any(kw in message.content for kw in ['复制此链接', '打开Dou音', '打开抖音', 'Jvs:/', '復制此鏈接']):
+                    is_douyin_share = True
+                    break
+
+        if is_douyin_share:
+            reply_text = "\n".join(fixed_urls)
+        else:
+            # 將原訊息複製一份並替換裡面的網址
+            new_content = message.content
+            for orig in sorted(replaced_mapping.keys(), key=len, reverse=True):
+                fixed = replaced_mapping[orig]
+                new_content = new_content.replace(orig, fixed)
+            reply_text = new_content
+
+        # 以公開訊息發送修復後的連結
+        await interaction.followup.send(
+            content=f"🔗 **由 {interaction.user.mention} 幫忙修復的連結：**\n{reply_text}"
+        )
 
 async def setup(bot):
     await bot.add_cog(LinkFixer(bot))
