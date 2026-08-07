@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
-import uvicorn
 
 app = FastAPI(title="Douyin Embed Fixer")
 
@@ -71,6 +70,3 @@ async def get_video_embed(video_id: str, request: Request):
 </html>
 """
     return html_content
-
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
