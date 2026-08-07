@@ -208,6 +208,17 @@ class LinkFixer(commands.Cog):
             fixed = replaced_mapping[orig]
             new_content = new_content.replace(orig, fixed)
 
+        # 4. 如果是包含抖音分享文字的格式，清理掉所有的額外分享文案，僅保留修復後的連結
+        is_douyin_share = False
+        for url in urls:
+            if 'v.douyin.com' in url or 'douyin.com' in url:
+                if any(kw in message.content for kw in ['复制此链接', '打开Dou音', '打开抖音', 'Jvs:/', '復制此鏈接']):
+                    is_douyin_share = True
+                    break
+
+        if is_douyin_share:
+            new_content = "\n".join(fixed_urls)
+
         try:
             # 嘗試取得頻道中的 Webhook
             # 判斷是否在討論串 (Thread) 中，Thread 本身沒有 webhook，需從母頻道取得
