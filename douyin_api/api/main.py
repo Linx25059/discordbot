@@ -77,8 +77,7 @@ async def extract_douyin_video(video_id: str) -> dict:
         title = info.get('title') or f"抖音影片 (ID: {video_id})"
         thumbnail = info.get('thumbnail') or "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500"
         
-        # 4. 從影片格式列表中提取出 Bytedance 影片的 video_id 金鑰 (例如 v0d00fg10000...)
-        # 並藉此組裝出免防盜鏈 (無 Referer 阻擋) 的播放接口，以供 Discord 正常讀取
+        # 4. 從影片格式列表中提取出 Bytedance 影片的 video_id 金鑰
         video_id_key = None
         formats = info.get('formats', [])
         for fmt in formats:
@@ -90,10 +89,8 @@ async def extract_douyin_video(video_id: str) -> dict:
                     break
                     
         if video_id_key:
-            # aweme/v1/play/ 為無浮水印播放接口，允許外連與爬蟲直接下載
             video_url = f"https://aweme.snssdk.com/aweme/v1/play/?video_id={video_id_key}"
         else:
-            # 備用：若無法擷取金鑰，使用 yt-dlp 預設格式
             video_url = info.get('url')
             
         return {
@@ -123,6 +120,9 @@ async def get_video_embed(video_id: str, request: Request):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
     
+    <!-- ⚠️ 【關鍵字】宣告瀏覽器與爬蟲不發送 Referer 標頭，以完美繞過抖音 CDN 的防盜鏈阻擋 -->
+    <meta name="referrer" content="no-referrer">
+    
     <!-- 核心 Discord/Facebook Open Graph 標籤 -->
     <meta property="og:site_name" content="Douyin Fixer">
     <meta property="og:title" content="{title}">
@@ -151,7 +151,8 @@ async def get_video_embed(video_id: str, request: Request):
 <body style="background-color: #121212; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
     <div style="text-align: center; padding: 20px;">
         <h2>{title}</h2>
-        <video src="{video_url}" poster="{cover_url}" controls autoplay loop style="max-width: 100%; max-height: 80vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);"></video>
+        <!-- 加入 referrerpolicy="no-referrer" 屬性確保播放器請求不發送 referer -->
+        <video src="{video_url}" poster="{cover_url}" referrerpolicy="no-referrer" controls autoplay loop style="max-width: 100%; max-height: 80vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);"></video>
         <p style="margin-top: 15px; color: #888;">若無法自動播放，請手動點擊影片</p>
     </div>
 </body>
