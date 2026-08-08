@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 class LinkFixer(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.debug_mode = False
         # 建立正則表達式，用來抓取訊息中的任何可能網址
         self.url_pattern = re.compile(r'(https?://[^\s>\|]+)')
         
@@ -24,6 +25,13 @@ class LinkFixer(commands.Cog):
     def cog_unload(self):
         # 卸載 Cog 時移除右鍵選單指令
         self.bot.tree.remove_command(self.ctx_menu.name, type=self.ctx_menu.type)
+
+    @commands.command(name="linkfix_debug")
+    @commands.has_permissions(administrator=True)
+    async def toggle_debug(self, ctx):
+        self.debug_mode = not self.debug_mode
+        status = "開啟" if self.debug_mode else "關閉"
+        await ctx.send(f"🔧 連結修復除錯模式已 {status}。")
 
     def fix_single_url(self, url: str) -> str | None:
         try:
@@ -136,11 +144,16 @@ class LinkFixer(commands.Cog):
             pass
         return None
 
-    async def resolve_douyin_url(self, url: str) -> str | None:
+    async def resolve_douyin_url(self, url: str, debug_channel=None) -> str | None:
         """
         將抖音的短網址或標準網址轉換為中繼端網址，支援非同步跳轉追蹤
         """
+        async def send_debug(msg):
+            if debug_channel:
+                await debug_channel.send(f"🔍 [Douyin Debug] {msg}")
+
         try:
+            await send_debug(f"開始解析網址: `{url}`")
             parsed = urlparse(url)
             netloc = parsed.netloc.lower()
             path = parsed.path
@@ -150,30 +163,64 @@ class LinkFixer(commands.Cog):
                 domain = domain[4:]
                 
             proxy_base = os.getenv("DOUYIN_PROXY_BASE_URL", "https://your-douyin-proxy.vercel.app")
+            await send_debug(f"解析網址基本資訊: domain=`{domain}`, path=`{path}`, query=`{parsed.query}`")
 
             # A. 處理手機端分享短網址 v.douyin.com
             if domain == 'v.douyin.com':
+                await send_debug("偵測到 v.douyin.com 短網址，開始發送追蹤跳轉請求...")
                 headers = {
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                 }
                 # aiohttp 連線池非同步跟隨跳轉以獲取真實的長網址
                 async with self.bot.session.get(url, headers=headers, allow_redirects=True, timeout=5) as response:
+                    await send_debug(f"跳轉請求狀態碼: {response.status}")
                     if response.status == 200:
                         final_url = str(response.url)
                         final_parsed = urlparse(final_url)
+                        await send_debug(f"跳轉成功，最終網址為: `{final_url}`")
+                        # 優先尋找影片 /video/{id}
                         id_match = re.search(r'/video/(\d+)', final_parsed.path)
                         if id_match:
                             video_id = id_match.group(1)
-                            return f"{proxy_base.rstrip('/')}/video/{video_id}"
+                            fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
+                            await send_debug(f"成功在路徑提取影片 ID: `{video_id}`，生成修復連結: `{fixed}`")
+                            return fixed
+                        # 備用尋找彈窗 /?modal_id={id}
+                        modal_match = re.search(r'modal_id=(\d+)', final_parsed.query)
+                        if modal_match:
+                            video_id = modal_match.group(1)
+                            fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
+                            await send_debug(f"成功在參數提取 modal_id: `{video_id}`，生成修復連結: `{fixed}`")
+                            return fixed
+                        await send_debug("未能在跳轉後的網址中找到 /video/ 或 modal_id 影片 ID。")
+                    else:
+                        await send_debug(f"跳轉回應失敗，狀態碼為 {response.status}。")
                             
-            # B. 處理標準網頁版網址 douyin.com/video/...
-            elif domain == 'douyin.com' and path.startswith('/video/'):
-                id_match = re.search(r'/video/(\d+)', path)
-                if id_match:
-                    video_id = id_match.group(1)
-                    return f"{proxy_base.rstrip('/')}/video/{video_id}"
+            # B. 處理標準網頁版網址 douyin.com
+            elif domain == 'douyin.com':
+                await send_debug("偵測到 douyin.com 標準/電腦網頁網址。")
+                # 情況 1: 標準影片路徑 /video/{id}
+                if path.startswith('/video/'):
+                    id_match = re.search(r'/video/(\d+)', path)
+                    if id_match:
+                        video_id = id_match.group(1)
+                        fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
+                        await send_debug(f"成功匹配標準影片路徑，提取影片 ID: `{video_id}`，生成修復連結: `{fixed}`")
+                        return fixed
+                
+                # 情況 2: 彈窗影片路徑，常出現在電腦網頁版直接複製網址，例如 /recommend?modal_id={id}
+                modal_match = re.search(r'modal_id=(\d+)', parsed.query)
+                if modal_match:
+                    video_id = modal_match.group(1)
+                    fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
+                    await send_debug(f"成功在參數匹配到 modal_id: `{video_id}`，生成修復連結: `{fixed}`")
+                    return fixed
+                await send_debug(f"未能在 douyin.com 網址中提取出影片 ID。")
+            else:
+                await send_debug(f"該網址不屬於抖音網址域名: `{domain}`")
         except Exception as e:
             logger.warning(f"解析抖音網址時發生錯誤: {e}")
+            await send_debug(f"解析過程發生異常: {e}")
         return None
 
     @commands.Cog.listener()
@@ -198,7 +245,7 @@ class LinkFixer(commands.Cog):
                 continue
 
             # 2. 嘗試非同步解析 Douyin 網址 (短網址 & 標準網址)
-            fixed = await self.resolve_douyin_url(url)
+            fixed = await self.resolve_douyin_url(url, debug_channel=message.channel if self.debug_mode else None)
             if fixed:
                 fixed_urls.append(fixed)
                 replaced_mapping[url] = fixed
@@ -303,7 +350,7 @@ class LinkFixer(commands.Cog):
                 continue
 
             # 2. 嘗試非同步解析 Douyin 網址 (短網址 & 標準網址)
-            fixed = await self.resolve_douyin_url(url)
+            fixed = await self.resolve_douyin_url(url, debug_channel=interaction.channel if self.debug_mode else None)
             if fixed:
                 fixed_urls.append(fixed)
                 replaced_mapping[url] = fixed
