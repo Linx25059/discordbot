@@ -4,7 +4,9 @@ import aiohttp
 import asyncio
 import yt_dlp
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
+
+
 
 app = FastAPI(title="Douyin Embed Fixer")
 
@@ -98,7 +100,8 @@ async def extract_douyin_video(video_id: str) -> dict:
         return {
             "title": title,
             "video_url": video_url,
-            "cover_url": thumbnail
+            "cover_url": thumbnail,
+            "video_id_key": video_id_key
         }
     except Exception as e:
         print(f"[DouyinAPI] yt-dlp 解析失敗: {e}")
@@ -111,9 +114,19 @@ async def get_video_embed(video_id: str, request: Request):
     """
     info = await extract_douyin_video(video_id)
     
-    title = info.get("title") or f"抖音影片 (ID: {video_id})"
-    video_url = info.get("video_url") or "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-    cover_url = info.get("cover_url") or "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500"
+    if not info:
+        # 解析失敗時，直接重導向回官方抖音網址，讓 Discord 抓取官方預覽，使用者點擊也能開啟原影片
+        return RedirectResponse(url=f"https://www.douyin.com/video/{video_id}")
+        
+    title = info.get("title")
+    cover_url = info.get("cover_url")
+    
+    # 優先使用 Vercel 的串流代理，避免 Discord 存取抖音 CDN 遇到 403 阻擋
+    video_id_key = info.get("video_id_key")
+    if video_id_key:
+        video_url = f"{str(request.base_url).rstrip('/')}/video/stream/{video_id_key}"
+    else:
+        video_url = info.get("video_url")
 
     html_content = f"""<!DOCTYPE html>
 <html lang="zh-TW">
@@ -161,3 +174,29 @@ async def get_video_embed(video_id: str, request: Request):
 </html>
 """
     return html_content
+
+
+@app.get("/video/stream/{video_id_key}")
+async def stream_video(video_id_key: str):
+    """
+    代理影片串流，避免 Discord 由於機房 IP 限制或 Referer 限制被抖音封鎖
+    """
+    video_url = f"https://aweme.snssdk.com/aweme/v1/play/?video_id={video_id_key}"
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    }
+    ttwid = os.getenv("DOUYIN_COOKIE_TTWID")
+    if ttwid:
+        headers["Cookie"] = f"ttwid={ttwid}"
+        
+    async def video_generator():
+        async with aiohttp.ClientSession() as session:
+            async with session.get(video_url, headers=headers, allow_redirects=True) as response:
+                if response.status == 200:
+                    async for chunk, _ in response.content.iter_chunks():
+                        yield chunk
+                else:
+                    yield b""
+                    
+    return StreamingResponse(video_generator(), media_type="video/mp4")
