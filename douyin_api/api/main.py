@@ -51,7 +51,7 @@ async def extract_douyin_video(video_id: str) -> dict:
             
     if not ttwid:
         print("[DouyinAPI] 無法取得 ttwid，跳過解析。")
-        return {}
+        return {"error": "Failed to acquire ttwid cookie"}
 
     # 設定 yt-dlp 參數
     ydl_opts = {
@@ -74,7 +74,7 @@ async def extract_douyin_video(video_id: str) -> dict:
                 
         info = await loop.run_in_executor(None, extract)
         if not info:
-            return {}
+            return {"error": "yt-dlp returned empty info"}
             
         title = info.get('title') or f"抖音影片 (ID: {video_id})"
         thumbnail = info.get('thumbnail') or "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500"
@@ -104,8 +104,9 @@ async def extract_douyin_video(video_id: str) -> dict:
             "video_id_key": video_id_key
         }
     except Exception as e:
-        print(f"[DouyinAPI] yt-dlp 解析失敗: {e}")
-    return {}
+        err_msg = str(e)
+        print(f"[DouyinAPI] yt-dlp 解析失敗: {err_msg}")
+        return {"error": err_msg}
 
 @app.get("/video/{video_id}", response_class=HTMLResponse)
 async def get_video_embed(video_id: str, request: Request):
@@ -114,9 +115,14 @@ async def get_video_embed(video_id: str, request: Request):
     """
     info = await extract_douyin_video(video_id)
     
-    if not info:
-        # 解析失敗時，直接重導向回官方抖音網址，讓 Discord 抓取官方預覽，使用者點擊也能開啟原影片
-        return RedirectResponse(url=f"https://www.douyin.com/video/{video_id}")
+    if not info or "error" in info:
+        err_msg = info.get("error") if info else "Unknown extraction error"
+        headers = {
+            "X-Debug-Error": err_msg,
+            "X-Debug-Ttwid-Preset": "Yes" if os.getenv("DOUYIN_COOKIE_TTWID") else "No"
+        }
+        # 解析失敗時，直接重導向回官方抖音網址，在 Header 中夾帶錯誤訊息以便除錯
+        return RedirectResponse(url=f"https://www.douyin.com/video/{video_id}", headers=headers)
         
     title = info.get("title")
     cover_url = info.get("cover_url")
