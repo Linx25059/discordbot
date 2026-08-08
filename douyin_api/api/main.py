@@ -179,7 +179,11 @@ async def get_video_embed(video_id: str, request: Request):
 </body>
 </html>
 """
-    return html_content
+    headers = {
+        "X-Debug-Status": "Success",
+        "X-Debug-Ttwid-Preset": "Yes" if os.getenv("DOUYIN_COOKIE_TTWID") else "No"
+    }
+    return HTMLResponse(content=html_content, headers=headers)
 
 
 @app.get("/video/stream/{video_id_key}")
