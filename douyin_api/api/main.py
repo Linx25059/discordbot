@@ -27,6 +27,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Douyin Embed Fixer", lifespan=lifespan, dependencies=[Depends(verify_api_key)])
 
+@app.get("/")
+async def root():
+    return {
+        "status": "online",
+        "service": "Douyin Embed Fixer API",
+        "message": "API 正常運行中！請透過 /video/{video_id} 存取抖音嵌入服務。"
+    }
+
 async def get_ttwid(session: aiohttp.ClientSession) -> str | None:
     """
     動態註冊並獲取抖音的 ttwid cookie，以繞過安全驗證頁面
