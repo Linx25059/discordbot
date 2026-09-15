@@ -19,7 +19,8 @@ class ImageGen(commands.Cog):
         await ctx.defer()
         
         try:
-            async with self.bot.session.get(avatar_url) as resp:
+            timeout = aiohttp.ClientTimeout(total=10)
+            async with self.bot.session.get(avatar_url, timeout=timeout) as resp:
                 if resp.status != 200:
                     return await ctx.send("❌ 抓不到大頭貼，可能有點問題！")
                 data = await resp.read()
