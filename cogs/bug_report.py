@@ -2,8 +2,11 @@ import discord
 from discord.ext import commands
 import asyncio
 import io
+import logging
 
-#  報錯面板的按鈕 View
+logger = logging.getLogger(__name__)
+
+# 🚨 報錯面板的按鈕 View
 class BugReportPanelView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None) # 設定 None 代表機器人重啟後按鈕依然有效
@@ -76,8 +79,8 @@ class BugReportCloseView(discord.ui.View):
         
         try:
             await owner.send(embed=embed, file=transcript_file)
-        except discord.Forbidden:
-            pass # 若開發者關閉私訊功能則略過
+        except (discord.Forbidden, discord.HTTPException) as e:
+            logger.warning(f"無法發送報錯紀錄私訊給擁有者 ({owner}): {e}")
             
         await asyncio.sleep(2)
         await interaction.channel.delete(reason="報錯單已結案並傳送給62")
