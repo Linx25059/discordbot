@@ -6,24 +6,7 @@ class AutoReply(commands.Cog):
         self.bot = bot
 
     async def cog_load(self):
-        # 檢查舊的 auto_replies 是否缺少 guild_id 欄位
-        async with self.bot.db.db.execute("PRAGMA table_info(auto_replies)") as cursor:
-            columns = [row[1] for row in await cursor.fetchall()]
-            
-        if columns and "guild_id" not in columns:
-            # 執行資料表遷移 (Schema Migration)
-            await self.bot.db.db.execute("ALTER TABLE auto_replies RENAME TO auto_replies_backup")
-            await self.bot.db.db.execute('''CREATE TABLE auto_replies (guild_id INTEGER, keyword TEXT, reply TEXT, PRIMARY KEY (guild_id, keyword))''')
-            # 將舊資料移入新表，預設 guild_id = 0 (作為全域回覆)
-            await self.bot.db.db.execute("INSERT INTO auto_replies (guild_id, keyword, reply) SELECT 0, keyword, reply FROM auto_replies_backup")
-            await self.bot.db.db.execute("DROP TABLE auto_replies_backup")
-            
-        # 確保資料表結構正確
-        await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS auto_replies (guild_id INTEGER, keyword TEXT, reply TEXT, PRIMARY KEY (guild_id, keyword))''')
-        
-        # 清除我們先前產生出來的暫時性資料表
-        await self.bot.db.db.execute("DROP TABLE IF EXISTS server_auto_replies")
-        await self.bot.db.db.commit()
+        pass
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -32,8 +15,7 @@ class AutoReply(commands.Cog):
             return
 
         # 從資料庫抓取該伺服器所有的自動回覆設定 (包含 guild_id = 0 的全域回覆)
-        async with self.bot.db.db.execute('SELECT keyword, reply FROM auto_replies WHERE guild_id = ? OR guild_id = 0', (message.guild.id,)) as cursor:
-            replies = await cursor.fetchall()
+        replies = await self.bot.db.get_matching_auto_replies(message.guild.id)
 
         # 檢查訊息中是否包含關鍵字
         for keyword, reply in replies:
@@ -47,32 +29,28 @@ class AutoReply(commands.Cog):
     @commands.hybrid_command(name="addreply", aliases=["新增回覆"], help="【管理員】新增自訂關鍵字自動回覆")
     @commands.has_permissions(manage_messages=True)
     async def add_reply(self, ctx, keyword: str, *, reply: str):
-        await self.bot.db.db.execute('INSERT OR REPLACE INTO auto_replies (guild_id, keyword, reply) VALUES (?, ?, ?)', (ctx.guild.id, keyword, reply))
-        await self.bot.db.db.commit()
+        await self.bot.db.add_auto_reply(ctx.guild.id, keyword, reply)
         await ctx.send(embed=discord.Embed(title="✅ 新增自動回覆成功", description=f"**觸發關鍵字：** `{keyword}`\n**機器人回覆：** {reply}", color=discord.Color.green()))
 
     @commands.hybrid_command(name="delreply", aliases=["刪除回覆"], help="【管理員】刪除自訂關鍵字自動回覆")
     @commands.has_permissions(manage_messages=True)
     async def del_reply(self, ctx, keyword: str):
-        async with self.bot.db.db.execute('SELECT 1 FROM auto_replies WHERE guild_id = ? AND keyword = ?', (ctx.guild.id, keyword)) as cursor:
-            exists = await cursor.fetchone()
+        exists = await self.bot.db.check_auto_reply_exists(ctx.guild.id, keyword)
         
         if not exists:
             # 檢查是不是全域的回覆
-            async with self.bot.db.db.execute('SELECT 1 FROM auto_replies WHERE guild_id = 0 AND keyword = ?', (keyword,)) as cursor:
-                if await cursor.fetchone():
-                    return await ctx.send(embed=discord.Embed(description=f"❌ `{keyword}` 是全域自動回覆，一般的刪除指令無法處理喔。", color=discord.Color.red()), ephemeral=True)
+            is_global = await self.bot.db.check_auto_reply_exists(0, keyword)
+            if is_global:
+                return await ctx.send(embed=discord.Embed(description=f"❌ `{keyword}` 是全域自動回覆，一般的刪除指令無法處理喔。", color=discord.Color.red()), ephemeral=True)
             return await ctx.send(embed=discord.Embed(description=f"❌ 找不到關鍵字 `{keyword}` 的自動回覆設定喔。", color=discord.Color.red()), ephemeral=True)
 
-        await self.bot.db.db.execute('DELETE FROM auto_replies WHERE guild_id = ? AND keyword = ?', (ctx.guild.id, keyword))
-        await self.bot.db.db.commit()
+        await self.bot.db.remove_auto_reply(ctx.guild.id, keyword)
         await ctx.send(embed=discord.Embed(description=f"🗑️ 已成功刪除關鍵字 `{keyword}` 的自動回覆。", color=discord.Color.green()))
 
     @commands.hybrid_command(name="listreplies", aliases=["回覆清單"], help="【管理員】列出目前伺服器所有的自動回覆設定")
     @commands.has_permissions(manage_messages=True)
     async def list_replies(self, ctx):
-        async with self.bot.db.db.execute('SELECT guild_id, keyword, reply FROM auto_replies WHERE guild_id = ? OR guild_id = 0', (ctx.guild.id,)) as cursor:
-            replies = await cursor.fetchall()
+        replies = await self.bot.db.get_guild_auto_replies(ctx.guild.id)
 
         if not replies:
             return await ctx.send(embed=discord.Embed(description="📋 目前伺服器沒有設定任何自動回覆喔！", color=discord.Color.light_grey()))
@@ -89,21 +67,18 @@ class AutoReply(commands.Cog):
     @commands.hybrid_command(name="addglobalreply", aliases=["新增全域回覆"], help="【機器人擁有者專用】新增全域自動回覆")
     @commands.is_owner()
     async def add_global_reply(self, ctx, keyword: str, *, reply: str):
-        await self.bot.db.db.execute('INSERT OR REPLACE INTO auto_replies (guild_id, keyword, reply) VALUES (?, ?, ?)', (0, keyword, reply))
-        await self.bot.db.db.commit()
+        await self.bot.db.add_auto_reply(0, keyword, reply)
         await ctx.send(embed=discord.Embed(title="🌍 新增全域自動回覆成功", description=f"**觸發關鍵字：** `{keyword}`\n**機器人回覆：** {reply}\n*(此回覆將在所有伺服器生效)*", color=discord.Color.green()))
 
     @commands.hybrid_command(name="delglobalreply", aliases=["刪除全域回覆"], help="【機器人擁有者專用】刪除全域自動回覆")
     @commands.is_owner()
     async def del_global_reply(self, ctx, keyword: str):
-        async with self.bot.db.db.execute('SELECT 1 FROM auto_replies WHERE guild_id = 0 AND keyword = ?', (keyword,)) as cursor:
-            exists = await cursor.fetchone()
+        exists = await self.bot.db.check_auto_reply_exists(0, keyword)
         
         if not exists:
             return await ctx.send(embed=discord.Embed(description=f"❌ 找不到關鍵字 `{keyword}` 的全域自動回覆設定喔。", color=discord.Color.red()), ephemeral=True)
 
-        await self.bot.db.db.execute('DELETE FROM auto_replies WHERE guild_id = 0 AND keyword = ?', (keyword,))
-        await self.bot.db.db.commit()
+        await self.bot.db.remove_auto_reply(0, keyword)
         await ctx.send(embed=discord.Embed(description=f"🗑️ 已成功刪除全域關鍵字 `{keyword}` 的自動回覆。", color=discord.Color.green()))
 
 async def setup(bot):
