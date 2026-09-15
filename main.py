@@ -29,41 +29,46 @@ intents.message_content = True
 intents.members = True
 intents.presences = True
 
-# 建立機器人實例 (指令前綴設為 '!')
-bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
+class TechBot(commands.Bot):
+    """自訂機器人類別，託管連線池資源與生命週期優雅關閉機制"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.db = DatabaseManager('bot_database.db')
+        self.session: aiohttp.ClientSession | None = None
 
-# 初始化全域資料庫管理器
-bot.db = DatabaseManager('bot_database.db')
+    async def setup_hook(self):
+        # 初始化全域的 HTTP 連線池 (ClientSession)
+        self.session = aiohttp.ClientSession()
 
-async def setup_bot():
-    # 初始化全域的 HTTP 連線池 (ClientSession)，大幅減少 Socket 負擔與建立連線的延遲
-    bot.session = aiohttp.ClientSession()
+        # 啟動時先連線資料庫
+        await self.db.connect()
+        await self.db.init_tables()
 
-    # 啟動時先連線資料庫，確保所有 Cog 都能直接使用
-    await bot.db.connect()
-    await bot.db.init_tables()
+        # ⛔ 設定要暫時關閉/停用的模組檔案名稱清單
+        ignored_cogs = []
 
-    # ⛔ 設定要暫時關閉/停用的模組檔案名稱清單 (如有需要可加入不載入的檔案名稱)
-    ignored_cogs = []
+        # 啟動時自動載入 cogs 資料夾內的模組
+        for filename in os.listdir('./cogs'):
+            if filename.endswith('.py') and filename not in ignored_cogs:
+                try:
+                    await self.load_extension(f'cogs.{filename[:-3]}')
+                    logging.info(f'已載入模組: {filename}')
+                except Exception as e:
+                    logging.error(f'載入 {filename} 失敗: {e}')
+                    traceback.print_exc()
 
-    # 啟動時自動載入 cogs 資料夾內的模組
-    for filename in os.listdir('./cogs'):
-        if filename.endswith('.py') and filename not in ignored_cogs:
-            try:
-                await bot.load_extension(f'cogs.{filename[:-3]}')
-                logging.info(f'已載入模組: {filename}')
-            except Exception as e:
-                logging.error(f'載入 {filename} 失敗: {e}')
-                traceback.print_exc()  # 🛡️ 防禦：印出完整的錯誤堆疊，秒速抓漏
-                
-    # ⚠️ 為了避免觸發 Discord 429 速率限制，我們將自動同步關閉，改為使用 !sync 指令手動同步
-    # try:
-    #     synced = await bot.tree.sync()
-    #     print(f"✅ 已成功同步 {len(synced)} 個斜線指令！")
-    # except Exception as e:
-    #     print(f"❌ 斜線指令同步失敗: {e}")
+    async def close(self):
+        logging.info("正準備優雅關閉 Bot，釋放連線資源...")
+        if self.session and not self.session.closed:
+            await self.session.close()
+            logging.info("已成功關閉 aiohttp ClientSession")
+        if self.db:
+            await self.db.close()
+            logging.info("已成功關閉 SQLite 資料庫連線")
+        await super().close()
 
-bot.setup_hook = setup_bot
+# 建立機器人實例
+bot = TechBot(command_prefix='!', intents=intents, help_command=None)
 
 @bot.event
 async def on_ready():
@@ -79,21 +84,9 @@ async def on_command(ctx):
 async def on_command_completion(ctx):
     logging.info(f'[指令完成] 使用者: {ctx.author} (ID: {ctx.author.id}) | 指令: {ctx.command}')
 
-# 🛡️ 全域錯誤處理：捕捉錯誤並給予友善提示，避免機器人崩潰
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound):
-        return  # 忽略找不到指令的錯誤
-    elif isinstance(error, commands.MissingPermissions):
-        await ctx.send("❌ 您沒有權限執行此指令！")
-    else:
-        logging.error(f'執行指令 {ctx.command} 時發生錯誤: {error}')
-        traceback.print_exception(type(error), error, error.__traceback__)
-        await ctx.send("⚠️ 發生未預期的錯誤，請聯絡開發人員。")
-
 # 加入手動同步斜線指令的文字指令
-@bot.command(name="sync", help="【管理員專用】手動同步斜線指令")
-@commands.has_permissions(administrator=True)
+@bot.command(name="sync", help="【機器人擁有者專用】手動同步斜線指令")
+@commands.is_owner()
 async def sync_commands(ctx, scope: str = ""):
     await ctx.send("⏳ 正在同步斜線指令，這可能需要幾秒鐘...")
     try:
