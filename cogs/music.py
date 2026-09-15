@@ -2,6 +2,9 @@ import discord
 from discord.ext import commands
 import asyncio
 import yt_dlp
+import logging
+
+logger = logging.getLogger(__name__)
 
 # 隱藏 yt-dlp 預設的報錯訊息
 yt_dlp.utils.bug_reports_message = lambda: ''
@@ -66,7 +69,7 @@ class MusicControlView(discord.ui.View):
         if not vc:
             return await interaction.response.send_message("❌ 我現在不在語音頻道裡面喔！", ephemeral=True)
         
-        self.cog.queues[interaction.guild.id] = [] # 清空歌單
+        self.cog.queues.pop(interaction.guild.id, None) # 徹底清空並釋放該伺服器的歌單記憶體
         vc.stop()
         await vc.disconnect()
         await interaction.response.send_message("⏹️ 音樂已停止，我先離開語音頻道囉！", ephemeral=True)
@@ -104,7 +107,7 @@ class Music(commands.Cog):
                     # 確保在主執行緒中安全地呼叫下一首歌，避免跨執行緒操作崩潰
                     def after_playing(error):
                         if error:
-                            print(f"音樂播放結束時發生錯誤: {error}")
+                            logger.error(f"音樂播放結束時發生錯誤: {error}")
                         self.bot.loop.call_soon_threadsafe(self.play_next, ctx)
                         
                     ctx.voice_client.play(source, after=after_playing)
@@ -118,7 +121,7 @@ class Music(commands.Cog):
                     view = MusicControlView(self, ctx)
                     await ctx.send(embed=embed, view=view)
                 except Exception as e:
-                    print(f"播放音樂時發生錯誤: {e}")
+                    logger.error(f"播放音樂時發生錯誤: {e}", exc_info=True)
                     self.play_next(ctx) # 發生錯誤則跳下一首
             
             self.bot.loop.create_task(_play_task())
