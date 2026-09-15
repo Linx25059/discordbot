@@ -11,8 +11,7 @@ class Logger(commands.Cog):
         self.bot.loop.create_task(self.update_all_invites())
 
     async def cog_load(self):
-        await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS log_settings (guild_id INTEGER PRIMARY KEY, channel_id INTEGER)''')
-        await self.bot.db.db.commit()
+        pass
 
     # 啟動時先將伺服器目前的邀請連結狀態存入快取
     async def update_all_invites(self):
@@ -24,17 +23,15 @@ class Logger(commands.Cog):
                 pass # 如果沒有「管理伺服器」權限就跳過
 
     async def get_log_channel(self, guild):
-        async with self.bot.db.db.execute('SELECT channel_id FROM log_settings WHERE guild_id = ?', (guild.id,)) as cursor:
-            result = await cursor.fetchone()
-        if result:
-            return guild.get_channel(result[0])
+        channel_id = await self.bot.db.get_log_channel(guild.id)
+        if channel_id:
+            return guild.get_channel(channel_id)
         return None
 
     @commands.hybrid_command(name="setlog", aliases=["設定日誌"], help="設定當前頻道為「伺服器日誌」紀錄頻道")
     @commands.has_permissions(manage_channels=True)
     async def set_log(self, ctx):
-        await self.bot.db.db.execute('INSERT OR REPLACE INTO log_settings (guild_id, channel_id) VALUES (?, ?)', (ctx.guild.id, ctx.channel.id))
-        await self.bot.db.db.commit()
+        await self.bot.db.set_log_channel(ctx.guild.id, ctx.channel.id)
         await ctx.send(f"✅ 設定成功！已將 {ctx.channel.mention} 設為伺服器的日誌紀錄頻道。")
 
     # 🗑️ 紀錄刪除訊息
