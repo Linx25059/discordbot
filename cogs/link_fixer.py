@@ -148,7 +148,7 @@ class LinkFixer(commands.Cog):
 
     async def resolve_douyin_url(self, url: str, debug_channel=None) -> str | None:
         """
-        將抖音的短網址或標準網址轉換為中繼端網址，支援非同步跳轉追蹤
+        將抖音的短網址或標準網址轉換為中繼端網址，支援非同步跳轉追蹤與全網域識別
         """
         async def send_debug(msg):
             if debug_channel:
@@ -164,72 +164,100 @@ class LinkFixer(commands.Cog):
             if domain.startswith('www.'):
                 domain = domain[4:]
                 
-            proxy_base = os.getenv("DOUYIN_PROXY_BASE_URL", "https://your-douyin-proxy.vercel.app")
+            proxy_base = os.getenv("DOUYIN_PROXY_BASE_URL", "https://discordbot-six-gamma.vercel.app")
             await send_debug(f"解析網址基本資訊: domain=`{domain}`, path=`{path}`, query=`{parsed.query}`")
 
-            # A. 處理手機端分享短網址 v.douyin.com
-            if domain == 'v.douyin.com':
+            # A. 處理短網址 v.douyin.com
+            if domain == 'v.douyin.com' or 'v.douyin.com' in url:
                 await send_debug("偵測到 v.douyin.com 短網址，開始發送追蹤跳轉請求...")
-                # 關鍵修正：必須使用 Mobile User-Agent，否則字節跳動服務器會拒絕對 PC UA 的短網址跳轉
                 headers = {
                     "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
                 }
-                # aiohttp 連線池非同步跟隨跳轉以獲取真實的長網址
-                async with self.bot.session.get(url, headers=headers, allow_redirects=True, timeout=5) as response:
-                    await send_debug(f"跳轉請求狀態碼: {response.status}")
-                    if response.status == 200:
-                        final_url = str(response.url)
-                        final_parsed = urlparse(final_url)
-                        await send_debug(f"跳轉成功，最終網址為: `{final_url}`")
-                        
-                        # 1. 優先尋找影片 /video/{id} 或 /share/video/{id}
-                        id_match = re.search(r'/(?:video|share/video)/(\d+)', final_parsed.path)
-                        if id_match:
-                            video_id = id_match.group(1)
-                            fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
-                            await send_debug(f"成功在路徑提取影片 ID: `{video_id}`，生成修復連結: `{fixed}`")
-                            return fixed
-                            
-                        # 2. 尋找圖集/筆記 /note/{id} 或 /share/note/{id}
-                        note_match = re.search(r'/(?:note|share/note)/(\d+)', final_parsed.path)
-                        if note_match:
-                            video_id = note_match.group(1)
-                            fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
-                            await send_debug(f"成功在路徑提取圖集 ID: `{video_id}`，生成修復連結: `{fixed}`")
-                            return fixed
-
-                        # 3. 備用尋找彈窗 /?modal_id={id}
-                        modal_match = re.search(r'modal_id=(\d+)', final_parsed.query)
-                        if modal_match:
-                            video_id = modal_match.group(1)
-                            fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
-                            await send_debug(f"成功在參數提取 modal_id: `{video_id}`，生成修復連結: `{fixed}`")
-                            return fixed
-                        await send_debug("未能在跳轉後的網址中找到 /video/、/note/ 或 modal_id 影片 ID。")
+                
+                # 安全獲取 aiohttp session
+                session = getattr(self.bot, 'session', None)
+                async def _do_get(s: aiohttp.ClientSession):
+                    # 允許跳轉以獲取最終網址
+                    async with s.get(url, headers=headers, allow_redirects=True, timeout=a_timeout) as response:
+                        return response.status, str(response.url), response.headers
+                
+                a_timeout = aiohttp.ClientTimeout(total=6)
+                try:
+                    if session and not session.closed:
+                        status, final_url, resp_headers = await _do_get(session)
                     else:
-                        await send_debug(f"跳轉回應失敗，狀態碼為 {response.status}。")
-                            
-            # B. 處理標準網頁版網址 douyin.com
-            elif domain == 'douyin.com' or domain.endswith('.douyin.com'):
-                await send_debug("偵測到 douyin.com 標準/電腦網頁網址。")
-                # 情況 1: 標準影片或圖集路徑 /video/{id} 或 /note/{id}
-                id_match = re.search(r'/(?:video|note|share/video|share/note)/(\d+)', path)
+                        async with aiohttp.ClientSession() as temp_sess:
+                            status, final_url, resp_headers = await _do_get(temp_sess)
+                except Exception as req_err:
+                    await send_debug(f"跳轉請求異常: {req_err}")
+                    return None
+
+                await send_debug(f"跳轉成功，最終網址為: `{final_url}`")
+                
+                # 1. 優先從跳轉後的網址尋找影片 /video/{id} 或 /share/video/{id}
+                id_match = re.search(r'/(?:video|share/video)/(\d+)', final_url)
                 if id_match:
                     video_id = id_match.group(1)
                     fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
-                    await send_debug(f"成功匹配影片/圖集路徑，提取影片 ID: `{video_id}`，生成修復連結: `{fixed}`")
+                    await send_debug(f"成功提取影片 ID: `{video_id}`，生成修復連結: `{fixed}`")
                     return fixed
-                
-                # 情況 2: 彈窗影片路徑，常出現在電腦網頁版直接複製網址，例如 /recommend?modal_id={id}
-                modal_match = re.search(r'modal_id=(\d+)', parsed.query)
+                    
+                # 2. 尋找圖集/筆記 /note/{id} 或 /share/note/{id}
+                note_match = re.search(r'/(?:note|share/note)/(\d+)', final_url)
+                if note_match:
+                    video_id = note_match.group(1)
+                    fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
+                    await send_debug(f"成功提取圖集 ID: `{video_id}`，生成修復連結: `{fixed}`")
+                    return fixed
+
+                # 3. 尋找彈窗 /?modal_id={id}
+                modal_match = re.search(r'modal_id=(\d+)', final_url)
                 if modal_match:
                     video_id = modal_match.group(1)
                     fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
-                    await send_debug(f"成功在參數匹配到 modal_id: `{video_id}`，生成修復連結: `{fixed}`")
+                    await send_debug(f"成功提取 modal_id: `{video_id}`，生成修復連結: `{fixed}`")
                     return fixed
-                await send_debug(f"未能在 douyin.com 網址中提取出影片 ID。")
+                    
+                # 4. 全能降級方案：尋找 URL 中的任何 18-19 位數字金鑰 (抖音 Standard Aweme ID)
+                digit_match = re.search(r'(\d{18,19})', final_url)
+                if digit_match:
+                    video_id = digit_match.group(1)
+                    fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
+                    await send_debug(f"透過備用長數值匹配成功提取 ID: `{video_id}`，生成修復連結: `{fixed}`")
+                    return fixed
+
+                await send_debug("未能在跳轉後的網址中找到影片 ID。")
+                        
+            # B. 處理標準網頁版網址 douyin.com, iesdouyin.com 等
+            elif 'douyin.com' in domain or 'iesdouyin.com' in domain:
+                await send_debug("偵測到 douyin 網域網址。")
+                # 1. 匹配影片/圖集/分享路徑
+                id_match = re.search(r'/(?:video|note|share/video|share/note)/(\d+)', url)
+                if id_match:
+                    video_id = id_match.group(1)
+                    fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
+                    await send_debug(f"成功匹配標準路徑，提取影片 ID: `{video_id}`，生成修復連結: `{fixed}`")
+                    return fixed
+                
+                # 2. 匹配 modal_id 參數
+                modal_match = re.search(r'modal_id=(\d+)', url)
+                if modal_match:
+                    video_id = modal_match.group(1)
+                    fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
+                    await send_debug(f"成功匹配 modal_id: `{video_id}`，生成修復連結: `{fixed}`")
+                    return fixed
+
+                # 3. 備用全能 18-19 位數匹配
+                digit_match = re.search(r'(\d{18,19})', url)
+                if digit_match:
+                    video_id = digit_match.group(1)
+                    fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
+                    await send_debug(f"透過數值備用匹配提取 ID: `{video_id}`，生成修復連結: `{fixed}`")
+                    return fixed
+
+                await send_debug(f"未能在 douyin 網址中提取出影片 ID。")
             else:
-                await send_debug(f"該網址不屬於抖音網址域名: `{domain}`")
+                await send_debug(f"該網址不屬於抖音網域: `{domain}`")
         except Exception as e:
             logger.warning(f"解析抖音網址時發生錯誤: {e}")
             await send_debug(f"解析過程發生異常: {e}")
