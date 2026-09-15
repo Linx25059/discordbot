@@ -4,6 +4,9 @@ import aiohttp
 import urllib.parse
 import datetime
 import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 
 # --- 彈出式輸入視窗 (用來綁定地點) ---
 class WeatherBindModal(discord.ui.Modal, title='🌍 綁定預設天氣地點'):
@@ -21,8 +24,7 @@ class WeatherBindModal(discord.ui.Modal, title='🌍 綁定預設天氣地點'):
     async def on_submit(self, interaction: discord.Interaction):
         location = self.location_input.value.strip()
         # 寫入資料庫
-        await self.cog.bot.db.db.execute('INSERT OR REPLACE INTO user_weather_location (user_id, location) VALUES (?, ?)', (interaction.user.id, location))
-        await self.cog.bot.db.db.commit()
+        await self.cog.bot.db.set_user_weather_location(interaction.user.id, location)
         
         await interaction.response.send_message(f"✅ 已成功將預設地點綁定為 **{location}**！正在為你查詢...", ephemeral=True)
         
@@ -52,11 +54,6 @@ class Weather(commands.Cog):
         self.bot = bot
 
     async def cog_load(self):
-        # 建立使用者預設天氣地點資料表
-        await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS user_weather_location (user_id INTEGER PRIMARY KEY, location TEXT)''')
-        # 建立每日天氣訂閱資料表
-        await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS daily_weather_subs (user_id INTEGER PRIMARY KEY)''')
-        await self.bot.db.db.commit()
         self.daily_weather_task.start()
 
     def cog_unload(self):
@@ -64,28 +61,17 @@ class Weather(commands.Cog):
 
     @commands.hybrid_command(name="dailyweather", aliases=["每日天氣", "定時天氣"], help="開啟或關閉每日早上 8 點的天氣私訊推播")
     async def toggle_daily_weather(self, ctx):
-        async with self.bot.db.db.execute('SELECT 1 FROM daily_weather_subs WHERE user_id = ?', (ctx.author.id,)) as cursor:
-            is_sub = await cursor.fetchone()
-        
-        if is_sub:
-            await self.bot.db.db.execute('DELETE FROM daily_weather_subs WHERE user_id = ?', (ctx.author.id,))
-            await self.bot.db.db.commit()
+        is_sub = await self.bot.db.toggle_daily_weather_sub(ctx.author.id)
+        if not is_sub:
             await ctx.send(embed=discord.Embed(description="🚫 已**關閉**每日早晨天氣推播！", color=discord.Color.red()))
         else:
-            await self.bot.db.db.execute('INSERT INTO daily_weather_subs (user_id) VALUES (?)', (ctx.author.id,))
-            await self.bot.db.db.commit()
             await ctx.send(embed=discord.Embed(description="✅ 已**開啟**每日早晨天氣推播！\n每天早上 8 點，我會將你綁定的預設地點天氣私訊給你喔！(若未綁定地點，將預設為台北)", color=discord.Color.green()))
 
     tz_tw = datetime.timezone(datetime.timedelta(hours=8))
     @tasks.loop(time=datetime.time(hour=8, minute=0, second=0, tzinfo=tz_tw))
     async def daily_weather_task(self):
         # 撈出所有訂閱使用者的 ID 與他們綁定的地點
-        async with self.bot.db.db.execute('''
-            SELECT s.user_id, l.location 
-            FROM daily_weather_subs s 
-            LEFT JOIN user_weather_location l ON s.user_id = l.user_id
-        ''') as cursor:
-            subs = await cursor.fetchall()
+        subs = await self.bot.db.get_daily_weather_subs()
             
         for user_id, location in subs:
             if not location:
@@ -101,7 +87,7 @@ class Weather(commands.Cog):
                     if embed:
                         await user.send(embed=embed)
             except Exception as e:
-                print(f"推播每日天氣給 {user_id} 失敗: {e}")
+                logger.error(f"推播每日天氣給 {user_id} 失敗: {e}", exc_info=True)
                 
             # 避免觸發 Discord API Rate Limit 和 wttr.in 請求限制
             await asyncio.sleep(2)
@@ -263,13 +249,12 @@ class Weather(commands.Cog):
                     return embed
                 return None
         except Exception as e:
-            print(f"獲取天氣發生錯誤: {e}")
+            logger.error(f"獲取天氣發生錯誤: {e}", exc_info=True)
             return None
 
     @commands.hybrid_command(name="setweather", aliases=["設定天氣地點", "綁定天氣"], help="綁定你的專屬預設天氣查詢地點")
     async def set_weather(self, ctx, *, location: str):
-        await self.bot.db.db.execute('INSERT OR REPLACE INTO user_weather_location (user_id, location) VALUES (?, ?)', (ctx.author.id, location))
-        await self.bot.db.db.commit()
+        await self.bot.db.set_user_weather_location(ctx.author.id, location)
         await ctx.send(embed=discord.Embed(description=f"✅ 已成功將你的預設天氣地點綁定為 **{location}**！\n以後只要直接輸入 `/weather` 就會自動為你查詢這個地點囉！", color=discord.Color.green()))
 
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -278,10 +263,9 @@ class Weather(commands.Cog):
         is_default = False
         # 若沒有輸入地點，則去資料庫尋找使用者的綁定紀錄
         if not location:
-            async with self.bot.db.db.execute('SELECT location FROM user_weather_location WHERE user_id = ?', (ctx.author.id,)) as cursor:
-                result = await cursor.fetchone()
-            if result:
-                location = result[0]
+            saved_location = await self.bot.db.get_user_weather_location(ctx.author.id)
+            if saved_location:
+                location = saved_location
                 is_default = True
             else:
                 view = WeatherBindView(self, ctx.author.id)
