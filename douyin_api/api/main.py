@@ -3,12 +3,29 @@ import re
 import aiohttp
 import asyncio
 import yt_dlp
-from fastapi import FastAPI, Request
+import logging
+from fastapi import FastAPI, Request, Header, HTTPException, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 
+logger = logging.getLogger(__name__)
 
+from contextlib import asynccontextmanager
 
-app = FastAPI(title="Douyin Embed Fixer")
+async def verify_api_key(x_api_key: str | None = Header(None)):
+    """如果環境變數設定了 DOUYIN_API_KEY，則進行 X-API-Key 驗證」"""
+    required_key = os.getenv("DOUYIN_API_KEY")
+    if required_key and x_api_key != required_key:
+        raise HTTPException(status_code=403, detail="Invalid or missing X-API-Key header")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 全域託管 ClientSession 連線池
+    app.state.session = aiohttp.ClientSession()
+    yield
+    if not app.state.session.closed:
+        await app.state.session.close()
+
+app = FastAPI(title="Douyin Embed Fixer", lifespan=lifespan, dependencies=[Depends(verify_api_key)])
 
 async def get_ttwid(session: aiohttp.ClientSession) -> str | None:
     """
@@ -34,10 +51,10 @@ async def get_ttwid(session: aiohttp.ClientSession) -> str | None:
             if "ttwid=" in set_cookie:
                 return set_cookie.split("ttwid=")[1].split(";")[0]
     except Exception as e:
-        print(f"[DouyinAPI] 獲取 ttwid 失敗: {e}")
+        logger.error(f"[DouyinAPI] 獲取 ttwid 失敗: {e}")
     return None
 
-async def extract_douyin_video(video_id: str) -> dict:
+async def extract_douyin_video(video_id: str, session: aiohttp.ClientSession | None = None) -> dict:
     """
     使用 yt-dlp 擷取影片真實資訊與可外連的無浮水印 API 播放連結
     """
@@ -46,11 +63,14 @@ async def extract_douyin_video(video_id: str) -> dict:
     # 優先從環境變數讀取靜態 ttwid Cookie，若沒有則嘗試動態註冊
     ttwid = os.getenv("DOUYIN_COOKIE_TTWID")
     if not ttwid:
-        async with aiohttp.ClientSession() as session:
+        if session:
             ttwid = await get_ttwid(session)
+        else:
+            async with aiohttp.ClientSession() as temp_session:
+                ttwid = await get_ttwid(temp_session)
             
     if not ttwid:
-        print("[DouyinAPI] 無法取得 ttwid，跳過解析。")
+        logger.warning("[DouyinAPI] 無法取得 ttwid，跳過解析。")
         return {"error": "Failed to acquire ttwid cookie"}
 
     # 設定 yt-dlp 參數
@@ -105,7 +125,7 @@ async def extract_douyin_video(video_id: str) -> dict:
         }
     except Exception as e:
         err_msg = str(e)
-        print(f"[DouyinAPI] yt-dlp 解析失敗: {err_msg}")
+        logger.error(f"[DouyinAPI] yt-dlp 解析失敗: {err_msg}")
         return {"error": err_msg}
 
 @app.get("/video/{video_id}", response_class=HTMLResponse)
@@ -113,7 +133,8 @@ async def get_video_embed(video_id: str, request: Request):
     """
     接收影片 ID，透過 yt-dlp 本地解析並組裝出免防盜鏈的播放連結，回傳供 Discord 內置播放的 HTML
     """
-    info = await extract_douyin_video(video_id)
+    session = getattr(request.app.state, 'session', None)
+    info = await extract_douyin_video(video_id, session=session)
     
     if not info or "error" in info:
         err_msg = info.get("error") if info else "Unknown extraction error"
@@ -187,7 +208,7 @@ async def get_video_embed(video_id: str, request: Request):
 
 
 @app.get("/video/stream/{video_id_key}")
-async def stream_video(video_id_key: str):
+async def stream_video(video_id_key: str, request: Request):
     """
     代理影片串流，避免 Discord 由於機房 IP 限制或 Referer 限制被抖音封鎖
     """
@@ -201,12 +222,21 @@ async def stream_video(video_id_key: str):
         headers["Cookie"] = f"ttwid={ttwid}"
         
     async def video_generator():
-        async with aiohttp.ClientSession() as session:
+        session: aiohttp.ClientSession | None = getattr(request.app.state, 'session', None)
+        if session and not session.closed:
             async with session.get(video_url, headers=headers, allow_redirects=True) as response:
                 if response.status == 200:
                     async for chunk, _ in response.content.iter_chunks():
                         yield chunk
                 else:
                     yield b""
+        else:
+            async with aiohttp.ClientSession() as temp_session:
+                async with temp_session.get(video_url, headers=headers, allow_redirects=True) as response:
+                    if response.status == 200:
+                        async for chunk, _ in response.content.iter_chunks():
+                            yield chunk
+                    else:
+                        yield b""
                     
     return StreamingResponse(video_generator(), media_type="video/mp4")
