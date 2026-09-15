@@ -1,14 +1,14 @@
 import discord
 from discord.ext import commands
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     async def cog_load(self):
-        await self.bot.db.db.execute('''CREATE TABLE IF NOT EXISTS update_settings (guild_id INTEGER PRIMARY KEY, channel_id INTEGER, last_version TEXT)''')
-        await self.bot.db.db.commit()
-
         # --- 在這裡設定最新版本的更新內容 ---
         self.current_version = "1.3.1"
         self.changelog_title = f"✨ 機器人更新日誌 (v{self.current_version})"
@@ -54,8 +54,7 @@ class Help(commands.Cog):
 
     async def auto_push_updates(self):
         await self.bot.wait_until_ready()
-        async with self.bot.db.db.execute('SELECT guild_id, channel_id, last_version FROM update_settings') as cursor:
-            settings = await cursor.fetchall()
+        settings = await self.bot.db.get_all_update_settings()
 
         for guild_id, channel_id, last_version in settings:
             if last_version != self.current_version:
@@ -66,10 +65,9 @@ class Help(commands.Cog):
                     embed.set_footer(text="未來有新功能都會自動推播到這裡喔！")
                     try:
                         await channel.send("🚀 **機器人有新的更新內容囉！**", embed=embed)
-                        await self.bot.db.db.execute('UPDATE update_settings SET last_version = ? WHERE guild_id = ?', (self.current_version, guild_id))
-                        await self.bot.db.db.commit()
+                        await self.bot.db.update_last_version(guild_id, self.current_version)
                     except Exception as e:
-                        print(f"推播更新失敗 (Guild: {guild_id}): {e}")
+                        logger.error(f"推播更新失敗 (Guild: {guild_id}): {e}", exc_info=True)
 
     @commands.hybrid_command(name="help", aliases=["幫助", "指令", "h"], help="顯示所有可用的指令清單")
     async def custom_help(self, ctx):
@@ -179,9 +177,7 @@ class Help(commands.Cog):
         await ctx.send(f"✅ 設定成功！未來最新的更新資訊都會發布在 {ctx.channel.mention}。", embed=embed)
         
         # 核心修復：設定頻道時，故意將資料庫中的版本號設為一個舊的或不存在的值 (例如 "0.0.0")
-        await self.bot.db.db.execute('INSERT OR REPLACE INTO update_settings (guild_id, channel_id, last_version) VALUES (?, ?, ?)', 
-                       (ctx.guild.id, ctx.channel.id, "0.0.0"))
-        await self.bot.db.db.commit()
+        await self.bot.db.set_update_channel(ctx.guild.id, ctx.channel.id, "0.0.0")
 
 async def setup(bot):
     await bot.add_cog(Help(bot))
