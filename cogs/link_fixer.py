@@ -20,6 +20,8 @@ class LinkFixer(commands.Cog):
             name='修復訊息中的連結',
             callback=self.fix_links_ctx
         )
+
+    async def cog_load(self):
         self.bot.tree.add_command(self.ctx_menu)
 
     def cog_unload(self):
