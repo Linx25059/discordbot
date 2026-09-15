@@ -54,9 +54,61 @@ async def get_ttwid(session: aiohttp.ClientSession) -> str | None:
         logger.error(f"[DouyinAPI] 獲取 ttwid 失敗: {e}")
     return None
 
+async def fetch_aweme_detail(video_id: str, session: aiohttp.ClientSession | None = None) -> dict | None:
+    """
+    備用解析：當 yt-dlp 或 ttwid 失敗時，直接調用抖音官方 Web API (Aweme Detail)
+    """
+    url = f"https://www.iesdouyin.com/web/api/v2/aweme/iteminfo/?item_ids={video_id}"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
+    }
+    
+    async def _request(sess: aiohttp.ClientSession):
+        try:
+            async with sess.get(url, headers=headers, timeout=5) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    items = data.get("item_list", [])
+                    if items:
+                        item = items[0]
+                        title = item.get("desc") or f"抖音影片 (ID: {video_id})"
+                        
+                        # 封面圖
+                        video_info = item.get("video", {})
+                        cover_list = video_info.get("cover", {}).get("url_list", [])
+                        cover_url = cover_list[0] if cover_list else "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500"
+                        
+                        # 播放連結
+                        play_addr = video_info.get("play_addr", {}).get("url_list", [])
+                        raw_video_url = play_addr[0].replace("playwm", "play") if play_addr else None
+                        
+                        video_id_key = None
+                        if raw_video_url:
+                            match = re.search(r'video_id=([a-zA-Z0-9_]+)', raw_video_url)
+                            if match:
+                                video_id_key = match.group(1)
+                                
+                        video_url = f"https://aweme.snssdk.com/aweme/v1/play/?video_id={video_id_key}&.mp4" if video_id_key else raw_video_url
+                        
+                        return {
+                            "title": title,
+                            "video_url": video_url,
+                            "cover_url": cover_url,
+                            "video_id_key": video_id_key
+                        }
+        except Exception as e:
+            logger.error(f"[DouyinAPI] Aweme Detail 備用解析失敗: {e}")
+        return None
+
+    if session and not session.closed:
+        return await _request(session)
+    else:
+        async with aiohttp.ClientSession() as temp_sess:
+            return await _request(temp_sess)
+
 async def extract_douyin_video(video_id: str, session: aiohttp.ClientSession | None = None) -> dict:
     """
-    使用 yt-dlp 擷取影片真實資訊與可外連的無浮水印 API 播放連結
+    使用 yt-dlp 擷取影片真實資訊與可外連的無浮水印 API 播放連結，失敗時降級使用 Aweme Detail API
     """
     url = f"https://www.douyin.com/video/{video_id}"
     
@@ -70,8 +122,11 @@ async def extract_douyin_video(video_id: str, session: aiohttp.ClientSession | N
                 ttwid = await get_ttwid(temp_session)
             
     if not ttwid:
-        logger.warning("[DouyinAPI] 無法取得 ttwid，跳過解析。")
-        return {"error": "Failed to acquire ttwid cookie"}
+        logger.warning("[DouyinAPI] 無法取得 ttwid，嘗試切換至 Aweme Detail 備用 API 解析。")
+        fallback_res = await fetch_aweme_detail(video_id, session=session)
+        if fallback_res:
+            return fallback_res
+        return {"error": "Failed to acquire ttwid cookie and fallback API failed"}
 
     # 設定 yt-dlp 參數
     ydl_opts = {
@@ -94,6 +149,10 @@ async def extract_douyin_video(video_id: str, session: aiohttp.ClientSession | N
                 
         info = await loop.run_in_executor(None, extract)
         if not info:
+            logger.warning("[DouyinAPI] yt-dlp 回傳空數據，切換至 Aweme Detail 備用 API 解析。")
+            fallback_res = await fetch_aweme_detail(video_id, session=session)
+            if fallback_res:
+                return fallback_res
             return {"error": "yt-dlp returned empty info"}
             
         title = info.get('title') or f"抖音影片 (ID: {video_id})"
@@ -125,7 +184,10 @@ async def extract_douyin_video(video_id: str, session: aiohttp.ClientSession | N
         }
     except Exception as e:
         err_msg = str(e)
-        logger.error(f"[DouyinAPI] yt-dlp 解析失敗: {err_msg}")
+        logger.error(f"[DouyinAPI] yt-dlp 解析失敗: {err_msg}，嘗試切換至 Aweme Detail 備用 API 解析。")
+        fallback_res = await fetch_aweme_detail(video_id, session=session)
+        if fallback_res:
+            return fallback_res
         return {"error": err_msg}
 
 @app.get("/video/{video_id}", response_class=HTMLResponse)

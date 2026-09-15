@@ -170,8 +170,9 @@ class LinkFixer(commands.Cog):
             # A. 處理手機端分享短網址 v.douyin.com
             if domain == 'v.douyin.com':
                 await send_debug("偵測到 v.douyin.com 短網址，開始發送追蹤跳轉請求...")
+                # 關鍵修正：必須使用 Mobile User-Agent，否則字節跳動服務器會拒絕對 PC UA 的短網址跳轉
                 headers = {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
                 }
                 # aiohttp 連線池非同步跟隨跳轉以獲取真實的長網址
                 async with self.bot.session.get(url, headers=headers, allow_redirects=True, timeout=5) as response:
@@ -180,35 +181,44 @@ class LinkFixer(commands.Cog):
                         final_url = str(response.url)
                         final_parsed = urlparse(final_url)
                         await send_debug(f"跳轉成功，最終網址為: `{final_url}`")
-                        # 優先尋找影片 /video/{id}
-                        id_match = re.search(r'/video/(\d+)', final_parsed.path)
+                        
+                        # 1. 優先尋找影片 /video/{id} 或 /share/video/{id}
+                        id_match = re.search(r'/(?:video|share/video)/(\d+)', final_parsed.path)
                         if id_match:
                             video_id = id_match.group(1)
                             fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
                             await send_debug(f"成功在路徑提取影片 ID: `{video_id}`，生成修復連結: `{fixed}`")
                             return fixed
-                        # 備用尋找彈窗 /?modal_id={id}
+                            
+                        # 2. 尋找圖集/筆記 /note/{id} 或 /share/note/{id}
+                        note_match = re.search(r'/(?:note|share/note)/(\d+)', final_parsed.path)
+                        if note_match:
+                            video_id = note_match.group(1)
+                            fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
+                            await send_debug(f"成功在路徑提取圖集 ID: `{video_id}`，生成修復連結: `{fixed}`")
+                            return fixed
+
+                        # 3. 備用尋找彈窗 /?modal_id={id}
                         modal_match = re.search(r'modal_id=(\d+)', final_parsed.query)
                         if modal_match:
                             video_id = modal_match.group(1)
                             fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
                             await send_debug(f"成功在參數提取 modal_id: `{video_id}`，生成修復連結: `{fixed}`")
                             return fixed
-                        await send_debug("未能在跳轉後的網址中找到 /video/ 或 modal_id 影片 ID。")
+                        await send_debug("未能在跳轉後的網址中找到 /video/、/note/ 或 modal_id 影片 ID。")
                     else:
                         await send_debug(f"跳轉回應失敗，狀態碼為 {response.status}。")
                             
             # B. 處理標準網頁版網址 douyin.com
-            elif domain == 'douyin.com':
+            elif domain == 'douyin.com' or domain.endswith('.douyin.com'):
                 await send_debug("偵測到 douyin.com 標準/電腦網頁網址。")
-                # 情況 1: 標準影片路徑 /video/{id}
-                if path.startswith('/video/'):
-                    id_match = re.search(r'/video/(\d+)', path)
-                    if id_match:
-                        video_id = id_match.group(1)
-                        fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
-                        await send_debug(f"成功匹配標準影片路徑，提取影片 ID: `{video_id}`，生成修復連結: `{fixed}`")
-                        return fixed
+                # 情況 1: 標準影片或圖集路徑 /video/{id} 或 /note/{id}
+                id_match = re.search(r'/(?:video|note|share/video|share/note)/(\d+)', path)
+                if id_match:
+                    video_id = id_match.group(1)
+                    fixed = f"{proxy_base.rstrip('/')}/video/{video_id}"
+                    await send_debug(f"成功匹配影片/圖集路徑，提取影片 ID: `{video_id}`，生成修復連結: `{fixed}`")
+                    return fixed
                 
                 # 情況 2: 彈窗影片路徑，常出現在電腦網頁版直接複製網址，例如 /recommend?modal_id={id}
                 modal_match = re.search(r'modal_id=(\d+)', parsed.query)
