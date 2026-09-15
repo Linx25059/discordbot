@@ -265,10 +265,10 @@ async def get_video_embed(video_id: str, request: Request):
 </head>
 <body style="background-color: #121212; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
     <div style="text-align: center; padding: 20px;">
-        <h2>{title}</h2>
-        <!-- 加入 referrerpolicy="no-referrer" 屬性確保播放器請求不發送 referer -->
-        <video src="{video_url}" poster="{cover_url}" referrerpolicy="no-referrer" controls autoplay loop style="max-width: 100%; max-height: 80vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);"></video>
-        <p style="margin-top: 15px; color: #888;">若無法自動播放，請手動點擊影片</p>
+        <h2 style="font-size: 1.2rem; margin-bottom: 15px;">{title}</h2>
+        <!-- 關鍵修正：加入 playsinline, webkit-playsinline 與 muted 屬性，確保 iOS Safari 及 Android 行動裝置允許播放 -->
+        <video src="{video_url}" poster="{cover_url}" referrerpolicy="no-referrer" controls autoplay muted loop playsinline webkit-playsinline style="max-width: 100%; max-height: 75vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);"></video>
+        <p style="margin-top: 15px; color: #888; font-size: 0.85rem;">若無法自動播放，請手動點擊影片播放</p>
     </div>
 </body>
 </html>
@@ -283,34 +283,55 @@ async def get_video_embed(video_id: str, request: Request):
 @app.get("/video/stream/{video_id_key}")
 async def stream_video(video_id_key: str, request: Request):
     """
-    代理影片串流，避免 Discord 由於機房 IP 限制或 Referer 限制被抖音封鎖
+    代理影片串流，支援 HTTP Byte-Range (206 Partial Content) 傳輸，確保 iOS Safari 及行動裝置瀏覽器順暢播放
     """
     clean_key = video_id_key.removesuffix(".mp4")
     video_url = f"https://aweme.snssdk.com/aweme/v1/play/?video_id={clean_key}"
     
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
     }
+    
+    # 傳遞行動裝置所需的 Range 標頭 (如 bytes=0-1)
+    range_header = request.headers.get("Range")
+    if range_header:
+        headers["Range"] = range_header
+        
     ttwid = os.getenv("DOUYIN_COOKIE_TTWID")
     if ttwid:
         headers["Cookie"] = f"ttwid={ttwid}"
         
-    async def video_generator():
-        session: aiohttp.ClientSession | None = getattr(request.app.state, 'session', None)
-        if session and not session.closed:
-            async with session.get(video_url, headers=headers, allow_redirects=True) as response:
-                if response.status == 200:
-                    async for chunk, _ in response.content.iter_chunks():
-                        yield chunk
-                else:
-                    yield b""
-        else:
-            async with aiohttp.ClientSession() as temp_session:
-                async with temp_session.get(video_url, headers=headers, allow_redirects=True) as response:
-                    if response.status == 200:
-                        async for chunk, _ in response.content.iter_chunks():
-                            yield chunk
-                    else:
-                        yield b""
-                    
-    return StreamingResponse(video_generator(), media_type="video/mp4")
+    session: aiohttp.ClientSession | None = getattr(request.app.state, 'session', None)
+    
+    async def fetch_stream(sess: aiohttp.ClientSession):
+        resp = await sess.get(video_url, headers=headers, allow_redirects=True)
+        resp_status = resp.status
+        resp_headers = {}
+        for h in ("Content-Type", "Content-Length", "Content-Range", "Accept-Ranges"):
+            val = resp.headers.get(h)
+            if val:
+                resp_headers[h] = val
+        if "Content-Type" not in resp_headers:
+            resp_headers["Content-Type"] = "video/mp4"
+        if "Accept-Ranges" not in resp_headers:
+            resp_headers["Accept-Ranges"] = "bytes"
+
+        async def video_generator():
+            try:
+                async for chunk, _ in resp.content.iter_chunks():
+                    yield chunk
+            finally:
+                resp.close()
+
+        return StreamingResponse(
+            video_generator(),
+            status_code=resp_status if resp_status in (200, 206) else 200,
+            headers=resp_headers,
+            media_type="video/mp4"
+        )
+
+    if session and not session.closed:
+        return await fetch_stream(session)
+    else:
+        async with aiohttp.ClientSession() as temp_session:
+            return await fetch_stream(temp_session)
