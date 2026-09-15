@@ -3,6 +3,8 @@ from discord.ext import commands
 import os
 import logging
 import traceback
+import asyncio
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
@@ -71,15 +73,23 @@ class AIChat(commands.Cog):
             "stream": False  # 禁用串流，一次取得完整結果以便 Discord 回覆
         }
         
-        async with self.bot.session.post(self.api_url, json=payload) as response:
-            if response.status == 200:
-                data = await response.json()
-                raw_response = data.get("response", "")
-                return self.format_response(raw_response)
-            else:
-                error_msg = f"Ollama 伺服器回傳錯誤狀態碼: {response.status}"
-                logger.error(error_msg)
-                return f"❌ 呼叫 AI 模型時發生錯誤 (錯誤碼 {response.status})"
+        timeout = aiohttp.ClientTimeout(total=30)
+        try:
+            async with self.bot.session.post(self.api_url, json=payload, timeout=timeout) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    raw_response = data.get("response", "")
+                    return self.format_response(raw_response)
+                else:
+                    error_msg = f"Ollama 伺服器回傳錯誤狀態碼: {response.status}"
+                    logger.error(error_msg)
+                    return f"❌ 呼叫 AI 模型時發生錯誤 (錯誤碼 {response.status})"
+        except asyncio.TimeoutError:
+            logger.warning("Ollama API 請求逾時 (超過 30 秒)")
+            return "⏳ AI 模型回應逾時，請稍後再試。"
+        except aiohttp.ClientError as e:
+            logger.error(f"Ollama API 連線失敗: {e}")
+            return "❌ 無法連線至 AI 伺服器，請檢查 Ollama 是否正在運行。"
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
