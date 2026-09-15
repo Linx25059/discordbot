@@ -62,6 +62,14 @@ async def get_ttwid(session: aiohttp.ClientSession) -> str | None:
         logger.error(f"[DouyinAPI] 獲取 ttwid 失敗: {e}")
     return None
 
+@asynccontextmanager
+async def use_session(provided_session: aiohttp.ClientSession | None = None):
+    if provided_session and not provided_session.closed:
+        yield provided_session
+    else:
+        async with aiohttp.ClientSession() as temp_sess:
+            yield temp_sess
+
 async def fetch_aweme_detail(video_id: str, session: aiohttp.ClientSession | None = None) -> dict | None:
     """
     備用解析：當 yt-dlp 或 ttwid 失敗時，直接調用抖音官方 Web API (Aweme Detail)
@@ -71,7 +79,7 @@ async def fetch_aweme_detail(video_id: str, session: aiohttp.ClientSession | Non
         "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
     }
     
-    async def _request(sess: aiohttp.ClientSession):
+    async with use_session(session) as sess:
         try:
             async with sess.get(url, headers=headers, timeout=5) as resp:
                 if resp.status == 200:
@@ -81,12 +89,10 @@ async def fetch_aweme_detail(video_id: str, session: aiohttp.ClientSession | Non
                         item = items[0]
                         title = item.get("desc") or f"抖音影片 (ID: {video_id})"
                         
-                        # 封面圖
                         video_info = item.get("video", {})
                         cover_list = video_info.get("cover", {}).get("url_list", [])
                         cover_url = cover_list[0] if cover_list else "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500"
                         
-                        # 播放連結
                         play_addr = video_info.get("play_addr", {}).get("url_list", [])
                         raw_video_url = play_addr[0].replace("playwm", "play") if play_addr else None
                         
@@ -106,13 +112,7 @@ async def fetch_aweme_detail(video_id: str, session: aiohttp.ClientSession | Non
                         }
         except Exception as e:
             logger.error(f"[DouyinAPI] Aweme Detail 備用解析失敗: {e}")
-        return None
-
-    if session and not session.closed:
-        return await _request(session)
-    else:
-        async with aiohttp.ClientSession() as temp_sess:
-            return await _request(temp_sess)
+    return None
 
 async def extract_douyin_video(video_id: str, session: aiohttp.ClientSession | None = None) -> dict:
     """
@@ -303,18 +303,14 @@ async def stream_video(video_id_key: str, request: Request):
         
     session: aiohttp.ClientSession | None = getattr(request.app.state, 'session', None)
     
-    async def fetch_stream(sess: aiohttp.ClientSession):
+    async with use_session(session) as sess:
         resp = await sess.get(video_url, headers=headers, allow_redirects=True)
-        resp_status = resp.status
-        resp_headers = {}
-        for h in ("Content-Type", "Content-Length", "Content-Range", "Accept-Ranges"):
-            val = resp.headers.get(h)
-            if val:
-                resp_headers[h] = val
-        if "Content-Type" not in resp_headers:
-            resp_headers["Content-Type"] = "video/mp4"
-        if "Accept-Ranges" not in resp_headers:
-            resp_headers["Accept-Ranges"] = "bytes"
+        resp_headers = {
+            h: resp.headers[h] for h in ("Content-Type", "Content-Length", "Content-Range", "Accept-Ranges")
+            if h in resp.headers
+        }
+        resp_headers.setdefault("Content-Type", "video/mp4")
+        resp_headers.setdefault("Accept-Ranges", "bytes")
 
         async def video_generator():
             try:
@@ -325,13 +321,7 @@ async def stream_video(video_id_key: str, request: Request):
 
         return StreamingResponse(
             video_generator(),
-            status_code=resp_status if resp_status in (200, 206) else 200,
+            status_code=resp.status if resp.status in (200, 206) else 200,
             headers=resp_headers,
             media_type="video/mp4"
         )
-
-    if session and not session.closed:
-        return await fetch_stream(session)
-    else:
-        async with aiohttp.ClientSession() as temp_session:
-            return await fetch_stream(temp_session)

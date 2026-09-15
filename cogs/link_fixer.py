@@ -263,105 +263,78 @@ class LinkFixer(commands.Cog):
             await send_debug(f"解析過程發生異常: {e}")
         return None
 
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        if message.author.bot:
-            return
+    async def process_content_links(self, content: str, channel=None) -> tuple[str, list[str]]:
+        """
+        核心解析介面：對字串內容中的所有網址進行解析與替換，回傳 (new_content, fixed_urls)
+        """
+        urls = self.url_pattern.findall(content)
+        if not urls:
+            return content, []
 
-        # 快速檢查訊息是否含有網址，減少後續正則比對負荷
-        if not self.url_pattern.search(message.content):
-            return
-
-        urls = self.url_pattern.findall(message.content)
         fixed_urls = []
         replaced_mapping = {}
 
         for url in urls:
-            # 1. 優先嘗試非同步解析 Threads 的 /share/ 網址
             fixed = await self.resolve_threads_share_url(url)
-            if fixed:
-                fixed_urls.append(fixed)
-                replaced_mapping[url] = fixed
-                continue
-
-            # 2. 嘗試非同步解析 Douyin 網址 (短網址 & 標準網址)
-            fixed = await self.resolve_douyin_url(url, debug_channel=message.channel if self.debug_mode else None)
-            if fixed:
-                fixed_urls.append(fixed)
-                replaced_mapping[url] = fixed
-                continue
-
-            # 3. 處理其他一般網址的同步轉換
-            fixed = self.fix_single_url(url)
+            if not fixed:
+                fixed = await self.resolve_douyin_url(url, debug_channel=channel if self.debug_mode else None)
+            if not fixed:
+                fixed = self.fix_single_url(url)
+                
             if fixed:
                 fixed_urls.append(fixed)
                 replaced_mapping[url] = fixed
 
-        # 若沒有任何網址被修改，則不進行後續動作
         if not replaced_mapping:
-            return
+            return content, []
 
-        # 依照網址長度降序替換，防止子字串取代錯誤
-        new_content = message.content
-        for orig in sorted(replaced_mapping.keys(), key=len, reverse=True):
-            fixed = replaced_mapping[orig]
-            new_content = new_content.replace(orig, fixed)
-
-        # 4. 如果是包含抖音分享文字的格式，清理掉所有的額外分享文案，僅保留修復後的連結
-        is_douyin_share = False
-        for url in urls:
-            if 'v.douyin.com' in url or 'douyin.com' in url:
-                if any(kw in message.content for kw in ['复制此链接', '打开Dou音', '打开抖音', 'Jvs:/', '復制此鏈接']):
-                    is_douyin_share = True
-                    break
+        is_douyin_share = any(
+            ('v.douyin.com' in u or 'douyin.com' in u) and
+            any(kw in content for kw in ['复制此链接', '打开Dou音', '打开抖音', 'Jvs:/', '復制此鏈接', '打開Dou音', '長按複製'])
+            for u in urls
+        )
 
         if is_douyin_share:
             new_content = "\n".join(fixed_urls)
+        else:
+            new_content = content
+            for orig in sorted(replaced_mapping.keys(), key=len, reverse=True):
+                new_content = new_content.replace(orig, replaced_mapping[orig])
+
+        return new_content, fixed_urls
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if message.author.bot or not self.url_pattern.search(message.content):
+            return
+
+        new_content, fixed_urls = await self.process_content_links(message.content, message.channel)
+        if not fixed_urls:
+            return
 
         try:
-            # 嘗試取得頻道中的 Webhook
-            # 判斷是否在討論串 (Thread) 中，Thread 本身沒有 webhook，需從母頻道取得
-            if isinstance(message.channel, discord.Thread):
-                webhook_channel = message.channel.parent
-            else:
-                webhook_channel = message.channel
-                
+            webhook_channel = message.channel.parent if isinstance(message.channel, discord.Thread) else message.channel
             webhooks = await webhook_channel.webhooks()
-            webhook = discord.utils.get(webhooks, user=self.bot.user)
-            # 如果沒有，就建立一個
-            if not webhook:
-                webhook = await webhook_channel.create_webhook(name="LinkFixer")
+            webhook = discord.utils.get(webhooks, user=self.bot.user) or await webhook_channel.create_webhook(name="LinkFixer")
 
-            # 準備附件 (如果有圖片或其他檔案，也一併帶過去)
             files = [await attachment.to_file() for attachment in message.attachments]
-
-            # 透過 Webhook 發送偽裝訊息
+            send_kwargs = {
+                "content": new_content,
+                "username": message.author.display_name,
+                "avatar_url": message.author.display_avatar.url,
+                "files": files
+            }
             if isinstance(message.channel, discord.Thread):
-                await webhook.send(
-                    content=new_content,
-                    username=message.author.display_name,
-                    avatar_url=message.author.display_avatar.url,
-                    files=files,
-                    thread=message.channel
-                )
-            else:
-                await webhook.send(
-                    content=new_content,
-                    username=message.author.display_name,
-                    avatar_url=message.author.display_avatar.url,
-                    files=files
-                )
-            
-            # 刪除原訊息
+                send_kwargs["thread"] = message.channel
+
+            await webhook.send(**send_kwargs)
             await message.delete()
 
         except discord.Forbidden:
-            # 如果機器人權限不足 (無法管理 Webhook 或刪除訊息)，退回舊版簡單的回覆模式
             try:
                 await message.edit(suppress=True)
             except discord.Forbidden:
                 pass
-            
             reply_content = "🔗 **為您提供可預覽的連結：**\n" + "\n".join(fixed_urls)
             await message.reply(reply_content, mention_author=False)
 
@@ -369,63 +342,17 @@ class LinkFixer(commands.Cog):
         """
         右鍵選單指令：自動修復訊息中含有的 Threads、抖音或 Twitter 等可預覽連結
         """
-        # 快速檢查訊息是否含有網址
         if not self.url_pattern.search(message.content):
             await interaction.response.send_message("❌ 這則訊息中沒有偵測到任何網址喔！", ephemeral=True)
             return
 
-        # 延遲回應以避免非同步解析超時
         await interaction.response.defer(ephemeral=False)
-
-        urls = self.url_pattern.findall(message.content)
-        fixed_urls = []
-        replaced_mapping = {}
-
-        for url in urls:
-            # 1. 優先嘗試非同步解析 Threads 的 /share/ 網址
-            fixed = await self.resolve_threads_share_url(url)
-            if fixed:
-                fixed_urls.append(fixed)
-                replaced_mapping[url] = fixed
-                continue
-
-            # 2. 嘗試非同步解析 Douyin 網址 (短網址 & 標準網址)
-            fixed = await self.resolve_douyin_url(url, debug_channel=interaction.channel if self.debug_mode else None)
-            if fixed:
-                fixed_urls.append(fixed)
-                replaced_mapping[url] = fixed
-                continue
-
-            # 3. 處理其他一般網址的同步轉換
-            fixed = self.fix_single_url(url)
-            if fixed:
-                fixed_urls.append(fixed)
-                replaced_mapping[url] = fixed
+        reply_text, fixed_urls = await self.process_content_links(message.content, interaction.channel)
 
         if not fixed_urls:
             await interaction.followup.send("❌ 這則訊息中的網址不需要修復，或是不支援修復喔！", ephemeral=True)
             return
 
-        # 整理修復後的連結輸出
-        # 如果是包含抖音分享文字的格式，僅保留連結
-        is_douyin_share = False
-        for url in urls:
-            if 'v.douyin.com' in url or 'douyin.com' in url:
-                if any(kw in message.content for kw in ['复制此链接', '打开Dou音', '打开抖音', 'Jvs:/', '復制此鏈接']):
-                    is_douyin_share = True
-                    break
-
-        if is_douyin_share:
-            reply_text = "\n".join(fixed_urls)
-        else:
-            # 將原訊息複製一份並替換裡面的網址
-            new_content = message.content
-            for orig in sorted(replaced_mapping.keys(), key=len, reverse=True):
-                fixed = replaced_mapping[orig]
-                new_content = new_content.replace(orig, fixed)
-            reply_text = new_content
-
-        # 以公開訊息發送修復後的連結
         await interaction.followup.send(
             content=f"🔗 **由 {interaction.user.mention} 幫忙修復的連結：**\n{reply_text}"
         )
