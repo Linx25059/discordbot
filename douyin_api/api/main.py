@@ -221,7 +221,9 @@ async def get_video_embed(video_id: str, request: Request):
     # 優先使用 Vercel 的串流代理，避免 Discord 存取抖音 CDN 遇到 403 阻擋
     video_id_key = info.get("video_id_key")
     if video_id_key:
-        video_url = f"{str(request.base_url).rstrip('/')}/video/stream/{video_id_key}"
+        # ⚠️ 【關鍵修正】在串流網址末端加上 .mp4，使 Discord 的 Open Graph 爬蟲能正確識別為直鏈影片並渲染播放器
+        clean_key = video_id_key.removesuffix(".mp4")
+        video_url = f"{str(request.base_url).rstrip('/')}/video/stream/{clean_key}.mp4"
     else:
         video_url = info.get("video_url")
 
@@ -244,6 +246,7 @@ async def get_video_embed(video_id: str, request: Request):
     
     <!-- 影片直接串流位址 (重要：必須指向直鏈 .mp4，且為 HTTPS) -->
     <meta property="og:video" content="{video_url}">
+    <meta property="og:video:url" content="{video_url}">
     <meta property="og:video:secure_url" content="{video_url}">
     <meta property="og:video:type" content="video/mp4">
     <meta property="og:video:width" content="720">
@@ -282,7 +285,8 @@ async def stream_video(video_id_key: str, request: Request):
     """
     代理影片串流，避免 Discord 由於機房 IP 限制或 Referer 限制被抖音封鎖
     """
-    video_url = f"https://aweme.snssdk.com/aweme/v1/play/?video_id={video_id_key}"
+    clean_key = video_id_key.removesuffix(".mp4")
+    video_url = f"https://aweme.snssdk.com/aweme/v1/play/?video_id={clean_key}"
     
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
