@@ -35,22 +35,13 @@ class Translation(commands.Cog):
             name='翻譯此訊息',
             callback=self.translate_message_context_menu,
         )
-        self.bot.tree.add_command(self.ctx_menu)
 
     async def cog_unload(self):
         # 卸載 Cog 時移除上下文選單
         self.bot.tree.remove_command(self.ctx_menu.name, type=self.ctx_menu.type)
 
     async def cog_load(self):
-        # 初始化自動翻譯頻道資料表
-        await self.bot.db.db.execute('''
-            CREATE TABLE IF NOT EXISTS translation_channels (
-                guild_id INTEGER,
-                channel_id INTEGER PRIMARY KEY,
-                target_language TEXT
-            )
-        ''')
-        await self.bot.db.db.commit()
+        self.bot.tree.add_command(self.ctx_menu)
 
     def get_lang_code(self, lang_name: str) -> str:
         """
@@ -226,11 +217,7 @@ class Translation(commands.Cog):
 
         if action == "enable":
             target_channel = channel or ctx.channel
-            await self.bot.db.db.execute(
-                "INSERT OR REPLACE INTO translation_channels (guild_id, channel_id, target_language) VALUES (?, ?, ?)",
-                (ctx.guild.id, target_channel.id, target_language)
-            )
-            await self.bot.db.db.commit()
+            await self.bot.db.set_translation_channel(ctx.guild.id, target_channel.id, target_language)
 
             embed = discord.Embed(
                 title="✅ 啟用自動翻譯",
@@ -242,21 +229,13 @@ class Translation(commands.Cog):
 
         elif action == "disable":
             target_channel = channel or ctx.channel
-            async with self.bot.db.db.execute(
-                "SELECT 1 FROM translation_channels WHERE channel_id = ?",
-                (target_channel.id,)
-            ) as cursor:
-                exists = await cursor.fetchone()
+            lang = await self.bot.db.get_translation_channel_lang(target_channel.id)
 
-            if not exists:
+            if not lang:
                 await ctx.send(f"❌ 頻道 {target_channel.mention} 尚未啟用自動翻譯。")
                 return
 
-            await self.bot.db.db.execute(
-                "DELETE FROM translation_channels WHERE channel_id = ?",
-                (target_channel.id,)
-            )
-            await self.bot.db.db.commit()
+            await self.bot.db.remove_translation_channel(target_channel.id)
 
             embed = discord.Embed(
                 title="🧹 停用自動翻譯",
@@ -266,11 +245,7 @@ class Translation(commands.Cog):
             await ctx.send(embed=embed)
 
         elif action == "list":
-            async with self.bot.db.db.execute(
-                "SELECT channel_id, target_language FROM translation_channels WHERE guild_id = ?",
-                (ctx.guild.id,)
-            ) as cursor:
-                rows = await cursor.fetchall()
+            rows = await self.bot.db.get_guild_translation_channels(ctx.guild.id)
 
             if not rows:
                 await ctx.send("ℹ️ 當前伺服器中沒有任何頻道啟用自動翻譯。")
@@ -335,16 +310,10 @@ class Translation(commands.Cog):
             return
 
         # 檢查該頻道是否設定為自動翻譯
-        async with self.bot.db.db.execute(
-            "SELECT target_language FROM translation_channels WHERE channel_id = ?",
-            (message.channel.id,)
-        ) as cursor:
-            row = await cursor.fetchone()
+        target_lang = await self.bot.db.get_translation_channel_lang(message.channel.id)
 
-        if not row:
+        if not target_lang:
             return
-
-        target_lang = row[0]
         clean_content = message.content.strip()
         if not clean_content:
             return
