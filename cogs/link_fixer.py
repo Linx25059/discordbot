@@ -4,6 +4,7 @@ from discord import app_commands
 import re
 import os
 import logging
+import aiohttp
 from urllib.parse import urlparse, urlunparse
 
 logger = logging.getLogger(__name__)
